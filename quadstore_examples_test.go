@@ -50,13 +50,39 @@ func sortQuads(slice [][4]string) {
 	sort.Sort(quadSlice(slice))
 }
 
-func sortStrings(slice []string) {
-	sort.Strings(slice)
-}
-
 // func Example_titleHere() {}
 
-// func ExampleNew() {}
+func ExampleNewQuadStore() {
+
+	// A new empty store.
+	s1 := store4.NewQuadStore()
+	fmt.Println(s1.String())
+
+	// A new store initialised with a slice of quads.
+	s2 := store4.NewQuadStore([][4]string{
+		{"s1", "p1", "o1", "g1"},
+		{"s1", "p2", "o2", "g1"},
+		{"s2", "p2", "o2", "g1"},
+	})
+	fmt.Println(s2.String())
+
+	// A new store initialised with a slice of triples.
+	s3 := store4.NewQuadStore([][3]string{
+		{"s1", "p1", "o1"},
+		{"s1", "p2", "o2"},
+		{"s2", "p2", "o2"},
+	})
+	fmt.Println(s3.String())
+
+	// Output:
+	// [s1 p1 o1 g1]
+	// [s1 p2 o2 g1]
+	// [s2 p2 o2 g1]
+	//
+	// [s1 p1 o1 ]
+	// [s1 p2 o2 ]
+	// [s2 p2 o2 ]
+}
 
 func ExampleQuadStore_Add() {
 
@@ -89,18 +115,13 @@ func ExampleQuadStore_Add() {
 
 func ExampleQuadStore_Size() {
 
-	quads := [][4]string{
+	s := store4.NewQuadStore([][4]string{
 		{"s1", "p1", "o1", "g1"},
 		{"s1", "p2", "o2", "g1"},
 		{"s2", "p2", "o2", "g1"},
 		{"s2", "p2", "o3", "g2"},
 		{"s3", "p3", "o3", "g2"},
-	}
-
-	s := store4.NewQuadStore()
-	for _, q := range quads {
-		s.Add(q[0], q[1], q[2], q[3])
-	}
+	})
 
 	// How many quads are in the store?
 	count := s.Size()
@@ -111,18 +132,15 @@ func ExampleQuadStore_Size() {
 
 func ExampleQuadStore_Remove() {
 
-	quads := [][4]string{
+	s := store4.NewQuadStore([][4]string{
 		{"s1", "p1", "o1", "g1"},
 		{"s1", "p2", "o2", "g1"},
 		{"s2", "p2", "o2", "g1"},
 		{"s2", "p2", "o3", "g2"},
 		{"s3", "p3", "o3", "g2"},
-	}
+	})
 
-	s := store4.NewQuadStore()
-	for _, q := range quads {
-		s.Add(q[0], q[1], q[2], q[3])
-	}
+	fmt.Println(s.Size())
 
 	// Remove a specific quad from the store.
 	s.Remove("s3", "p3", "o3", "g2")
@@ -137,6 +155,7 @@ func ExampleQuadStore_Remove() {
 	fmt.Println(s.Size())
 
 	// Output:
+	// 5
 	// 4
 	// 3
 	// 0
@@ -144,18 +163,13 @@ func ExampleQuadStore_Remove() {
 
 func ExampleQuadStore_Count() {
 
-	quads := [][4]string{
+	s := store4.NewQuadStore([][4]string{
 		{"s1", "p1", "o1", "g1"},
 		{"s1", "p2", "o2", "g1"},
 		{"s2", "p2", "o2", "g1"},
 		{"s2", "p2", "o3", "g2"},
 		{"s3", "p3", "o3", "g2"},
-	}
-
-	s := store4.NewQuadStore()
-	for _, q := range quads {
-		s.Add(q[0], q[1], q[2], q[3])
-	}
+	})
 
 	// Count quads that have subject s1.
 	count := s.Count("s1", "*", "*", "*")
@@ -177,18 +191,13 @@ func ExampleQuadStore_Count() {
 
 func ExampleQuadStore_ForEach() {
 
-	quads := [][4]string{
+	s := store4.NewQuadStore([][4]string{
 		{"s1", "p1", "o1", "g1"},
 		{"s1", "p2", "o2", "g1"},
 		{"s2", "p2", "o2", "g1"},
 		{"s2", "p2", "o3", "g2"},
 		{"s3", "p3", "o3", "g2"},
-	}
-
-	s := store4.NewQuadStore()
-	for _, q := range quads {
-		s.Add(q[0], q[1], q[2], q[3])
-	}
+	})
 
 	var results [][4]string
 	s.ForEach(func(s, p, o, g string) {
@@ -212,40 +221,35 @@ func ExampleQuadStore_ForEach() {
 
 func ExampleQuadStore_FindGraphs() {
 
-	quads := [][4]string{
+	s := store4.NewQuadStore([][4]string{
 		{"s1", "p1", "o1", "g1"},
 		{"s1", "p2", "o2", "g1"},
 		{"s2", "p2", "o2", "g1"},
 		{"s2", "p2", "o3", "g2"},
 		{"s3", "p3", "o3", "g2"},
-	}
-
-	s := store4.NewQuadStore()
-	for _, q := range quads {
-		s.Add(q[0], q[1], q[2], q[3])
-	}
+	})
 
 	// Get a list of all graphs.
 	results := s.FindGraphs("*", "*", "*")
 	// (We only sort the results before printing
 	// because iteration order is not stable)
-	sortStrings(results)
+	sort.Strings(results)
 	fmt.Println(results)
 
 	// Find graphs containing quads that have subject s1.
 	results = s.FindGraphs("s1", "*", "*")
-	sortStrings(results)
+	sort.Strings(results)
 	fmt.Println(results)
 
 	// Find graphs containing quads that have
 	// both subject s2 and predicate p2.
 	results = s.FindGraphs("s2", "p2", "*")
-	sortStrings(results)
+	sort.Strings(results)
 	fmt.Println(results)
 
 	// Find graphs containging quads that have object o3.
 	results = s.FindGraphs("*", "*", "o3")
-	sortStrings(results)
+	sort.Strings(results)
 	fmt.Println(results)
 
 	// Output:
@@ -257,35 +261,30 @@ func ExampleQuadStore_FindGraphs() {
 
 func ExampleQuadStore_FindSubjects() {
 
-	quads := [][4]string{
+	s := store4.NewQuadStore([][4]string{
 		{"s1", "p1", "o1", "g1"},
 		{"s1", "p2", "o2", "g1"},
 		{"s2", "p2", "o2", "g1"},
 		{"s2", "p2", "o3", "g2"},
 		{"s3", "p3", "o3", "g2"},
-	}
-
-	s := store4.NewQuadStore()
-	for _, q := range quads {
-		s.Add(q[0], q[1], q[2], q[3])
-	}
+	})
 
 	// Get a list of all subjects in the store.
 	results := s.FindSubjects("*", "*", "*")
 	// (We only sort the results before printing
 	// because iteration order is not stable)
-	sortStrings(results)
+	sort.Strings(results)
 	fmt.Println(results)
 
 	// Find all subjects in graph g2.
 	results = s.FindSubjects("*", "*", "g2")
-	sortStrings(results)
+	sort.Strings(results)
 	fmt.Println(results)
 
 	// Find subjects for quads that have
 	// both predicate p2 and object o2.
 	results = s.FindSubjects("p2", "o2", "*")
-	sortStrings(results)
+	sort.Strings(results)
 	fmt.Println(results)
 
 	// Output:
