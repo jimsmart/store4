@@ -2,6 +2,7 @@ package store4
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 )
 
@@ -35,8 +36,25 @@ func (s *QuadStore) Graph(name string) *Graph {
 
 // NewGraph returns an unnamed graph with a
 // newly created QuadStore as its backing.
-func NewGraph() *Graph {
-	return NewQuadStore().Graph("")
+func NewGraph(args ...interface{}) *Graph {
+	g := NewQuadStore().Graph("")
+
+	for _, arg := range args {
+		switch arg := arg.(type) {
+		default:
+			panic(fmt.Sprintf("unexpected type %T\n", arg))
+		case [3]string:
+			// Single string triple.
+			g.Add(arg[0], arg[1], arg[2])
+		case [][3]string:
+			// Slice of string triples.
+			for _, q := range arg {
+				g.Add(q[0], q[1], q[2])
+			}
+		}
+	}
+
+	return g
 }
 
 func adaptTripleCallbackFn(fn TripleCallbackFn) QuadCallbackFn {
