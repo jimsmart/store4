@@ -837,6 +837,7 @@ func loopIndex0(index0 indexRoot, fn func(key0 uint64)) {
 	}
 }
 
+// String returns the contents of the quad store in a human-readable format.
 func (s *QuadStore) String() string {
 	var buf bytes.Buffer
 	graphs := s.FindGraphs("*", "*", "*")
