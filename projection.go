@@ -52,6 +52,16 @@ func adaptTupleTestFn(fn TupleTestFn) QuadTestFn {
 	}
 }
 
+// Map returns a map containing the predicate terms for
+// the projection, mapped to their corresponding object terms.
+func (p *Projection) Map() map[string][]string {
+	m := make(map[string][]string)
+	p.ForPredicates("*", func(predicate string) {
+		m[predicate] = p.FindObjects(predicate)
+	})
+	return m
+}
+
 // Add a tuple to the projection.
 // Returns true if the tuple was a new tuple,
 // or false if the tuple already existed.
