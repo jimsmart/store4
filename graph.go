@@ -15,7 +15,7 @@ type TripleCallbackFn func(s, p, o string)
 // callback functions performing triple tests.
 // A response of true means that the test has been passed.
 //
-// Used with calls to QuadStore's Every, EveryWith, Some and SomeWith.
+// Used with calls to Graph's Every, EveryWith, Some and SomeWith.
 type TripleTestFn func(s, p, o string) bool
 
 // Graph is a convenience façade that simply
@@ -25,7 +25,7 @@ type Graph struct {
 	QuadStore *QuadStore
 }
 
-// Graph returns a proxy-façade that provdies a triple-based API for working with graphs within the store.
+// Graph returns a proxy-façade that provides a triple-based API for working with graphs within the store.
 func (s *QuadStore) Graph(name string) *Graph {
 	return &Graph{
 		Name:      name,
@@ -39,13 +39,13 @@ func NewGraph() *Graph {
 	return NewQuadStore().Graph("")
 }
 
-func adaptCallbackFn(fn TripleCallbackFn) QuadCallbackFn {
+func adaptTripleCallbackFn(fn TripleCallbackFn) QuadCallbackFn {
 	return func(s, p, o, g string) {
 		fn(s, p, o)
 	}
 }
 
-func adaptTestFn(fn TripleTestFn) QuadTestFn {
+func adaptTripleTestFn(fn TripleTestFn) QuadTestFn {
 	return func(s, p, o, g string) bool {
 		return fn(s, p, o)
 	}
@@ -81,9 +81,9 @@ func (g *Graph) Count(subject, predicate, object string) uint64 {
 // true for all triples, then Every returns true.
 //
 // Acting like the 'for all' quantifier in maths, it should
-// be noted that Every returns true for an empty store.
+// be noted that Every returns true for an empty graph.
 func (g *Graph) Every(fn TripleTestFn) bool {
-	return g.QuadStore.EveryWith("*", "*", "*", g.Name, adaptTestFn(fn))
+	return g.QuadStore.EveryWith("*", "*", "*", g.Name, adaptTripleTestFn(fn))
 }
 
 // EveryWith tests whether all triples in the graph that match the
@@ -101,7 +101,7 @@ func (g *Graph) Every(fn TripleTestFn) bool {
 // By extension, if the given parameters cause the iteration
 // set to be empty, then EveryWith also returns true.
 func (g *Graph) EveryWith(subject, predicate, object string, fn TripleTestFn) bool {
-	return g.QuadStore.EveryWith(subject, predicate, object, g.Name, adaptTestFn(fn))
+	return g.QuadStore.EveryWith(subject, predicate, object, g.Name, adaptTripleTestFn(fn))
 }
 
 // FindObjects returns a list of distinct object terms for all triples in the graph that match the given pattern.
@@ -130,7 +130,7 @@ func (g *Graph) FindSubjects(predicate, object string) []string {
 
 // ForEach executes the given callback once for each triple in the graph.
 func (g *Graph) ForEach(fn TripleCallbackFn) {
-	g.QuadStore.ForEachWith("*", "*", "*", g.Name, adaptCallbackFn(fn))
+	g.QuadStore.ForEachWith("*", "*", "*", g.Name, adaptTripleCallbackFn(fn))
 }
 
 // ForEachWith executes the given callback once for each triple in the graph
@@ -139,7 +139,7 @@ func (g *Graph) ForEach(fn TripleCallbackFn) {
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
 func (g *Graph) ForEachWith(subject, predicate, object string, fn TripleCallbackFn) {
-	g.QuadStore.ForEachWith(subject, predicate, object, g.Name, adaptCallbackFn(fn))
+	g.QuadStore.ForEachWith(subject, predicate, object, g.Name, adaptTripleCallbackFn(fn))
 }
 
 // ForObjects executes the given callback once for each distinct object term
@@ -187,7 +187,7 @@ func (g *Graph) Size() uint64 {
 	return gimpl.size
 }
 
-// Some tests whether some triples in the store passes the test
+// Some tests whether some triple in the graph passes the test
 // implemented by the given function.
 //
 // The given callback is
@@ -197,7 +197,7 @@ func (g *Graph) Size() uint64 {
 // Some returns true. Otherwise, if the callback returns
 // false for all triples, then Some returns false.
 func (g *Graph) Some(fn TripleTestFn) bool {
-	return g.QuadStore.SomeWith("*", "*", "*", g.Name, adaptTestFn(fn))
+	return g.QuadStore.SomeWith("*", "*", "*", g.Name, adaptTripleTestFn(fn))
 }
 
 // SomeWith tests whether some triple matching the given pattern
@@ -210,9 +210,10 @@ func (g *Graph) Some(fn TripleTestFn) bool {
 // SomeWith returns true. Otherwise, if the callback returns
 // false for all triples, then SomeWith returns false.
 func (g *Graph) SomeWith(subject, predicate, object string, fn TripleTestFn) bool {
-	return g.QuadStore.SomeWith(subject, predicate, object, g.Name, adaptTestFn(fn))
+	return g.QuadStore.SomeWith(subject, predicate, object, g.Name, adaptTripleTestFn(fn))
 }
 
+// String returns the contents of the graph in a human-readable format.
 func (g *Graph) String() string {
 	var buf bytes.Buffer
 	name := g.Name
