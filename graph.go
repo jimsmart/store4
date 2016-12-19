@@ -57,18 +57,6 @@ func NewGraph(args ...interface{}) *Graph {
 	return g
 }
 
-func adaptTripleCallbackFn(fn TripleCallbackFn) QuadCallbackFn {
-	return func(s, p, o, g string) {
-		fn(s, p, o)
-	}
-}
-
-func adaptTripleTestFn(fn TripleTestFn) QuadTestFn {
-	return func(s, p, o, g string) bool {
-		return fn(s, p, o)
-	}
-}
-
 // Add a triple to the graph.
 // Returns true if the triple was a new triple,
 // or false if the triple already existed.
@@ -260,4 +248,16 @@ func (g *Graph) String() string {
 		}
 	}
 	return buf.String()
+}
+
+func adaptTripleCallbackFn(fn TripleCallbackFn) QuadCallbackFn {
+	return func(s, p, o, g string) {
+		fn(s, p, o)
+	}
+}
+
+func adaptTripleTestFn(fn TripleTestFn) QuadTestFn {
+	return func(s, p, o, g string) bool {
+		return fn(s, p, o)
+	}
 }

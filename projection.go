@@ -18,39 +18,88 @@ type TupleCallbackFn func(p, o string)
 // Used with calls to Projection's Every, EveryWith, Some and SomeWith.
 type TupleTestFn func(p, o string) bool
 
+// Projection provides an 'object-oriented' view of a particular subject that is expressed in the store.
 type Projection struct {
 	Subject   string
 	Graph     string
 	QuadStore *QuadStore
 }
 
-func (s *QuadStore) Projection(subject, graph string) *Projection {
-	return &Projection{
+func (s *QuadStore) Projection(subject, graph string) (*Projection, bool) {
+	if subject == "*" {
+		panic("Unexpected use of wildcard '*' for subject")
+	}
+
+	haltFn := func(s, p, o, g string) bool {
+		return true
+	}
+
+	ok := s.SomeWith(subject, "*", "*", graph, haltFn)
+
+	p := &Projection{
 		Subject:   subject,
 		Graph:     graph,
 		QuadStore: s,
 	}
+	return p, ok
 }
 
-func (g *Graph) Projection(subject string) *Projection {
-	return &Projection{
+func (s *QuadStore) Projections(predicate, object, graph string) []*Projection {
+	var out []*Projection
+	s.ForSubjects(predicate, object, graph, func(subject string) {
+		p := &Projection{
+			Subject:   subject,
+			Graph:     graph,
+			QuadStore: s,
+		}
+		out = append(out, p)
+	})
+	return out
+}
+
+func (g *Graph) Projection(subject string) (*Projection, bool) {
+	if subject == "*" {
+		panic("Unexpected use of wildcard '*' for subject")
+	}
+
+	haltFn := func(s, p, o string) bool {
+		return true
+	}
+
+	ok := g.SomeWith(subject, "*", "*", haltFn)
+
+	p := &Projection{
 		Subject:   subject,
 		Graph:     g.Name,
 		QuadStore: g.QuadStore,
 	}
+	return p, ok
 }
 
-func adaptTupleCallbackFn(fn TupleCallbackFn) QuadCallbackFn {
-	return func(s, p, o, g string) {
-		fn(p, o)
-	}
+func (g *Graph) Projections(predicate, object string) []*Projection {
+	var out []*Projection
+	g.ForSubjects(predicate, object, func(subject string) {
+		p := &Projection{
+			Subject:   subject,
+			Graph:     g.Name,
+			QuadStore: g.QuadStore,
+		}
+		out = append(out, p)
+	})
+	return out
 }
 
-func adaptTupleTestFn(fn TupleTestFn) QuadTestFn {
-	return func(s, p, o, g string) bool {
-		return fn(p, o)
-	}
-}
+// // Query retrieves a list of all Projections in the store that match the given pattern and graph.
+// func (s *QuadStore) Query(pattern map[string][]string, graph string) []*Projection {
+// 	// TODO(js) Implement Query()
+// 	return nil
+// }
+
+// // Query retrieves a list of all Projections in the graph that match the given pattern.
+// func (g *Graph) Query(pattern map[string][]string) []*Projection {
+// 	// TODO(js) Implement Query()
+// 	return nil
+// }
 
 // Map returns a map containing the predicate terms for
 // the projection, mapped to their corresponding object terms.
@@ -70,6 +119,7 @@ func (p *Projection) Map() map[string][]string {
 // then this method will panic. (The asterisk is reserved
 // for wildcard operations throughout the API).
 func (p *Projection) Add(predicate, object string) bool {
+	// TODO(js) Would it be better if Add() added to default graph if the projection's graph is set to "*" ?
 	return p.QuadStore.Add(p.Subject, predicate, object, p.Graph)
 }
 
@@ -228,4 +278,16 @@ func (p *Projection) String() string {
 		}
 	}
 	return buf.String()
+}
+
+func adaptTupleCallbackFn(fn TupleCallbackFn) QuadCallbackFn {
+	return func(s, p, o, g string) {
+		fn(p, o)
+	}
+}
+
+func adaptTupleTestFn(fn TupleTestFn) QuadTestFn {
+	return func(s, p, o, g string) bool {
+		return fn(p, o)
+	}
 }
