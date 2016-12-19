@@ -2,6 +2,7 @@ package store4
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 )
 
@@ -56,14 +57,35 @@ type indexMid map[uint64]indexLeaf
 type indexLeaf map[uint64]struct{}
 
 // NewQuadStore creates a new quad store.
-func NewQuadStore() *QuadStore {
-
-	// TODO(js) Make constructor so it can handle various forms of initial data.
-
+func NewQuadStore(args ...interface{}) *QuadStore {
 	s := &QuadStore{
 		graphs: make(map[string]indexedGraph),
 	}
 	s.resetTermMaps()
+
+	for _, arg := range args {
+		switch arg := arg.(type) {
+		default:
+			panic(fmt.Sprintf("unexpected type %T\n", arg))
+		case [4]string:
+			// Single string quad.
+			s.Add(arg[0], arg[1], arg[2], arg[3])
+		case [3]string:
+			// Single string triple.
+			s.Add(arg[0], arg[1], arg[2], "")
+		case [][4]string:
+			// Slice of string quads.
+			for _, q := range arg {
+				s.Add(q[0], q[1], q[2], q[3])
+			}
+		case [][3]string:
+			// Slice of string triples.
+			for _, q := range arg {
+				s.Add(q[0], q[1], q[2], "")
+			}
+		}
+	}
+
 	return s
 }
 
