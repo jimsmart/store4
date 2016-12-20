@@ -56,7 +56,15 @@ type indexRoot map[uint64]indexMid
 type indexMid map[uint64]indexLeaf
 type indexLeaf map[uint64]struct{}
 
-// NewQuadStore creates a new quad store.
+// NewQuadStore creates a new quad store,
+// optionally initialising it with quads or triples.
+//
+// Initial quads or triples can be provided using any
+// of the following types:
+//  [][4]string
+//  [][3]string
+//  [4]string
+//  [3]string
 func NewQuadStore(args ...interface{}) *QuadStore {
 	s := &QuadStore{
 		graphs: make(map[string]*indexedGraph),
@@ -85,7 +93,6 @@ func NewQuadStore(args ...interface{}) *QuadStore {
 			}
 		}
 	}
-
 	return s
 }
 
@@ -102,6 +109,10 @@ func (s *QuadStore) resetTermMaps() {
 // Size returns the total count of quads in the store.
 func (s *QuadStore) Size() uint64 {
 	return s.size
+}
+
+func (s *QuadStore) Empty() bool {
+	return s.size == 0
 }
 
 // Add a quad to the store. Returns true if the quad was a new quad,
@@ -294,8 +305,8 @@ func (s *QuadStore) Count(subject, predicate, object, graph string) uint64 {
 				// If only object is given, the ospIndex will be fastest.
 				count += countInIndex(g.ospIndex, oid, sid, pid)
 			} else {
-				// If no params given, iterate subject and predicates first.
-				count += countInIndex(g.spoIndex, sid, pid, oid)
+				// If all wildcard params given, use the graph size.
+				count += g.size
 			}
 		}
 	})
@@ -562,12 +573,12 @@ func (idx indexMid) forEachMatch(query uint64, fn func(key uint64, idx indexLeaf
 	})
 }
 
-func (idx indexLeaf) forEachMatch(query uint64, fn func(key uint64)) {
-	idx.everyMatch(query, func(key uint64) bool {
-		fn(key)
-		return true
-	})
-}
+// func (idx indexLeaf) forEachMatch(query uint64, fn func(key uint64)) {
+// 	idx.everyMatch(query, func(key uint64) bool {
+// 		fn(key)
+// 		return true
+// 	})
+// }
 
 // FindGraphs returns a list of distinct graph names for all quads in the store that match the given pattern.
 //

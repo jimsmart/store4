@@ -31,8 +31,6 @@ type GraphView struct {
 	QuadStore *QuadStore
 }
 
-// GraphView returns a proxy-façade that provides a
-// triple-based API for working with graphs in the store.
 func (s *QuadStore) GraphView(graph string) *GraphView {
 	return &GraphView{
 		Graph:     graph,
@@ -40,13 +38,33 @@ func (s *QuadStore) GraphView(graph string) *GraphView {
 	}
 }
 
+func (s *QuadStore) GraphViews(subject, predicate, object string) []*GraphView {
+	var out []*GraphView
+	s.ForGraphs(subject, predicate, object, func(graph string) {
+		g := &GraphView{
+			Graph:     graph,
+			QuadStore: s,
+		}
+		out = append(out, g)
+	})
+	return out
+}
+
 // NewGraph returns a GraphView over an unnamed graph with a
-// newly created QuadStore as its backing.
+// newly created QuadStore as its backing, optionally
+// initialising it with triples.
 //
-// It is shorthand for NewQuadStore(args).GraphView("")
+// NewGraph is shorthand for NewQuadStore().GraphView("")
+// to quickly provide a default graph to use.
+//
+// If you wish to create graph that is not unnamed, or create
+// a graph associated with an existing store, see QuadStore.GraphView.
+//
+// Initial triples can be provided using the following types:
+//  [][3]string
+//  [3]string
 func NewGraph(args ...interface{}) *GraphView {
 	g := NewQuadStore().GraphView("")
-
 	for _, arg := range args {
 		switch arg := arg.(type) {
 		default:
@@ -83,6 +101,10 @@ func (g *GraphView) Add(subject, predicate, object string) bool {
 // match-everything wildcard for that term.
 func (g *GraphView) Count(subject, predicate, object string) uint64 {
 	return g.QuadStore.Count(subject, predicate, object, g.Graph)
+}
+
+func (g *GraphView) Empty() bool {
+	return g.Size() == 0
 }
 
 // Every tests whether all triples in the graph pass the test
@@ -202,11 +224,7 @@ func (g *GraphView) Remove(subject, predicate, object string) bool {
 
 // Size returns the total count of triples in the graph.
 func (g *GraphView) Size() uint64 {
-	gimpl, ok := g.QuadStore.graphs[g.Graph]
-	if !ok {
-		return 0
-	}
-	return gimpl.size
+	return g.QuadStore.Count("*", "*", "*", g.Graph)
 }
 
 // Some tests whether some triple in the graph passes the test

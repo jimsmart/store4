@@ -33,23 +33,13 @@ type SubjectView struct {
 	QuadStore *QuadStore
 }
 
-func (s *QuadStore) SubjectView(subject, graph string) (*SubjectView, bool) {
-	if subject == "*" {
-		panic("Unexpected use of wildcard '*' for subject")
-	}
-
-	haltFn := func(s, p, o, g string) bool {
-		return true
-	}
-
-	ok := s.SomeWith(subject, "*", "*", graph, haltFn)
-
+func (s *QuadStore) SubjectView(subject, graph string) *SubjectView {
 	p := &SubjectView{
 		Subject:   subject,
 		Graph:     graph,
 		QuadStore: s,
 	}
-	return p, ok
+	return p
 }
 
 func (s *QuadStore) SubjectViews(predicate, object, graph string) []*SubjectView {
@@ -65,7 +55,7 @@ func (s *QuadStore) SubjectViews(predicate, object, graph string) []*SubjectView
 	return out
 }
 
-func (g *GraphView) SubjectView(subject string) (*SubjectView, bool) {
+func (g *GraphView) SubjectView(subject string) *SubjectView {
 	return g.QuadStore.SubjectView(subject, g.Graph)
 }
 
@@ -77,8 +67,11 @@ func (g *GraphView) SubjectViews(predicate, object string) []*SubjectView {
 // having predicate-object terms that match the given pattern.
 //
 // Pattern is a collection of predicate-object tuples,
-// expressed as any of the following types:
-// map[string]string, map[string][]string, [][2]string, or a single [2]string.
+// expressed using any of the following types:
+//  map[string][]string
+//  map[string]string
+//  [][2]string
+//  [2]string
 func (s *QuadStore) Query(pattern interface{}, graph string) []*SubjectView {
 	// Convert given pattern into query list.
 	var poList [][2]string
@@ -144,8 +137,8 @@ func (g *GraphView) Query(pattern interface{}) []*SubjectView {
 // the SubjectView's subject, mapped to their corresponding object terms.
 func (v *SubjectView) Map() map[string][]string {
 	m := make(map[string][]string)
-	v.QuadStore.ForPredicates(v.Subject, "*", v.Graph, func(predicate string) {
-		m[predicate] = v.QuadStore.FindObjects(v.Subject, predicate, v.Graph)
+	v.ForPredicates("*", func(predicate string) {
+		m[predicate] = v.FindObjects(predicate)
 	})
 	return m
 }
@@ -170,6 +163,13 @@ func (v *SubjectView) Add(predicate, object string) bool {
 // match-everything wildcard for that term.
 func (v *SubjectView) Count(predicate, object string) uint64 {
 	return v.QuadStore.Count(v.Subject, predicate, object, v.Graph)
+}
+
+func (v *SubjectView) Empty() bool {
+	haltFn := func(s, p, o, g string) bool {
+		return true
+	}
+	return !v.QuadStore.SomeWith(v.Subject, "*", "*", v.Graph, haltFn)
 }
 
 // Every tests whether all tuples in the SubjectView pass the test

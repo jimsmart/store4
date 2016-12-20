@@ -169,6 +169,18 @@ var _ = Describe("QuadStore", func() {
 				}))
 			})
 		})
+
+		Context("from an unknown type", func() {
+			var s *QuadStore
+			shouldPanic := func() {
+				s = NewQuadStore(true)
+			}
+
+			It("should panic", func() {
+				Expect(shouldPanic).To(Panic())
+			})
+		})
+
 	})
 
 	Describe("An empty QuadStore", func() {
@@ -176,6 +188,10 @@ var _ = Describe("QuadStore", func() {
 
 		It("should have size 0", func() {
 			Expect(store.Size()).To(Equal(uint64(0)))
+		})
+
+		It("should be empty", func() {
+			Expect(store.Empty()).To(BeTrue())
 		})
 
 		Describe("Add", func() {
@@ -216,6 +232,9 @@ var _ = Describe("QuadStore", func() {
 
 		It("should have size 3", func() {
 			Expect(store.Size()).To(Equal(uint64(3)))
+		})
+		It("should not be empty", func() {
+			Expect(store.Empty()).To(BeFalse())
 		})
 
 		Describe("when adding a quad that did not exist yet", func() {
@@ -282,6 +301,9 @@ var _ = Describe("QuadStore", func() {
 
 		It("should have size 5", func() {
 			Expect(store.Size()).To(Equal(uint64(5)))
+		})
+		It("should not be empty", func() {
+			Expect(store.Empty()).To(BeFalse())
 		})
 
 		Describe("ForEach", func() {
