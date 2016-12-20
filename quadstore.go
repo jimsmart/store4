@@ -39,7 +39,7 @@ type QuadStore struct {
 	nextID uint64
 }
 
-type graphMap map[string]indexedGraph
+type graphMap map[string]*indexedGraph
 
 // indexedGraph represents a graph of triples,
 // held only in the indexes, which are indexed
@@ -59,7 +59,7 @@ type indexLeaf map[uint64]struct{}
 // NewQuadStore creates a new quad store.
 func NewQuadStore(args ...interface{}) *QuadStore {
 	s := &QuadStore{
-		graphs: make(map[string]indexedGraph),
+		graphs: make(map[string]*indexedGraph),
 	}
 	s.resetTermMaps()
 
@@ -119,7 +119,7 @@ func (s *QuadStore) Add(subject, predicate, object, graph string) bool {
 	g, ok := s.graphs[graph]
 	// Create the graph if it doesn't exist yet.
 	if !ok {
-		g = indexedGraph{
+		g = &indexedGraph{
 			spoIndex: make(indexRoot),
 			posIndex: make(indexRoot),
 			ospIndex: make(indexRoot),
@@ -234,7 +234,7 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
 	}
 
 	removed := false
-	graphs.forEachMatch(graph, func(graph string, g indexedGraph) {
+	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 		// Remove matching elements from SPO index.
 		count := removeFromIndex(g.spoIndex, sid, pid, oid)
 		if count == 0 {
@@ -276,7 +276,7 @@ func (s *QuadStore) Count(subject, predicate, object, graph string) uint64 {
 	}
 
 	var count uint64
-	graphs.forEachMatch(graph, func(graph string, g indexedGraph) {
+	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 		// Choose the optimal index, based on which fields are wildcards.
 		if sid != 0 {
 			if oid != 0 {
@@ -427,7 +427,7 @@ func (s *QuadStore) EveryWith(subject, predicate, object, graph string, fn QuadT
 		})
 	}
 
-	return graphs.everyMatch(graph, func(graph string, g indexedGraph) bool {
+	return graphs.everyMatch(graph, func(graph string, g *indexedGraph) bool {
 		q[3] = graph
 		// Choose the optimal index, based on which fields are wildcards.
 		if sid != 0 {
@@ -462,7 +462,7 @@ func (s *QuadStore) EveryWith(subject, predicate, object, graph string, fn QuadT
 // These four functions all operate identically,
 // but differ because of the specific types at each layer.
 
-func (gm graphMap) everyMatch(query string, fn func(key string, g indexedGraph) bool) bool {
+func (gm graphMap) everyMatch(query string, fn func(key string, g *indexedGraph) bool) bool {
 	// Either loop over all graphs, or over just one selected graph.
 	if query == "*" {
 		// All graphs.
@@ -541,8 +541,8 @@ func (idx indexLeaf) everyMatch(query uint64, fn func(key uint64) bool) bool {
 
 // Lazy helpers, for less error prone / more readable code elsewhere.
 
-func (gm graphMap) forEachMatch(query string, fn func(key string, g indexedGraph)) {
-	gm.everyMatch(query, func(key string, g indexedGraph) bool {
+func (gm graphMap) forEachMatch(query string, fn func(key string, g *indexedGraph)) {
+	gm.everyMatch(query, func(key string, g *indexedGraph) bool {
 		fn(key, g)
 		return true
 	})
@@ -637,7 +637,7 @@ func (s *QuadStore) ForSubjects(predicate, object, graph string, fn StringCallba
 		}
 	}
 
-	graphFindSubjects := func(g indexedGraph) {
+	graphFindSubjects := func(g *indexedGraph) {
 		// We want to list all subjects.
 		// The three index choices are: SPO POS OSP
 
@@ -664,7 +664,7 @@ func (s *QuadStore) ForSubjects(predicate, object, graph string, fn StringCallba
 		}
 	}
 
-	graphs.forEachMatch(graph, func(graph string, g indexedGraph) {
+	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 		graphFindSubjects(g)
 	})
 }
@@ -709,7 +709,7 @@ func (s *QuadStore) ForPredicates(subject, object, graph string, fn StringCallba
 		}
 	}
 
-	graphFindPredicates := func(g indexedGraph) {
+	graphFindPredicates := func(g *indexedGraph) {
 		// We want to list all predicates.
 		// The three index choices are: SPO POS OSP
 
@@ -736,7 +736,7 @@ func (s *QuadStore) ForPredicates(subject, object, graph string, fn StringCallba
 		}
 	}
 
-	graphs.forEachMatch(graph, func(graph string, g indexedGraph) {
+	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 		graphFindPredicates(g)
 	})
 }
@@ -781,7 +781,7 @@ func (s *QuadStore) ForObjects(subject, predicate, graph string, fn StringCallba
 		}
 	}
 
-	graphFindObjects := func(g indexedGraph) {
+	graphFindObjects := func(g *indexedGraph) {
 		// We want to list all objects.
 		// The three index choices are: SPO POS OSP
 
@@ -808,7 +808,7 @@ func (s *QuadStore) ForObjects(subject, predicate, graph string, fn StringCallba
 		}
 	}
 
-	graphs.forEachMatch(graph, func(graph string, g indexedGraph) {
+	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 		graphFindObjects(g)
 	})
 }
