@@ -2,6 +2,7 @@ package store4
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 )
 
@@ -19,6 +20,8 @@ type TupleCallbackFn func(p, o string)
 type TupleTestFn func(p, o string) bool
 
 // Projection provides an 'object-oriented' view of a particular subject that is expressed in the store.
+//
+// Returned from calls to Query, Projection and Projections on both QuadStore and Graph.
 type Projection struct {
 	Subject   string
 	Graph     string
@@ -58,48 +61,72 @@ func (s *QuadStore) Projections(predicate, object, graph string) []*Projection {
 }
 
 func (g *Graph) Projection(subject string) (*Projection, bool) {
-	if subject == "*" {
-		panic("Unexpected use of wildcard '*' for subject")
-	}
-
-	haltFn := func(s, p, o string) bool {
-		return true
-	}
-
-	ok := g.SomeWith(subject, "*", "*", haltFn)
-
-	p := &Projection{
-		Subject:   subject,
-		Graph:     g.Name,
-		QuadStore: g.QuadStore,
-	}
-	return p, ok
+	return g.QuadStore.Projection(subject, g.Name)
 }
 
 func (g *Graph) Projections(predicate, object string) []*Projection {
+	return g.QuadStore.Projections(predicate, object, g.Name)
+}
+
+// Query retrieves a list of all Projections in the store that match the given pattern and graph.
+//
+// Pattern is a collection of predicate-object tuples, expressed as any of the following types:
+// map[string]string, map[string][]string, [][2]string, or a single [2]string.
+func (s *QuadStore) Query(pattern interface{}, graph string) []*Projection {
+	// Convert given pattern into query list.
+	var poList [][2]string
+	switch pattern := pattern.(type) {
+	default:
+		panic(fmt.Sprintf("unexpected type %T\n", pattern))
+	case map[string]string:
+		for p, o := range pattern {
+			poList = append(poList, [2]string{p, o})
+		}
+	case map[string][]string:
+		for p, objects := range pattern {
+			for _, o := range objects {
+				poList = append(poList, [2]string{p, o})
+			}
+		}
+	case [][2]string:
+		poList = pattern
+	case [2]string:
+		poList = append(poList, pattern)
+	}
+	// Nothing to do?
+	if len(poList) == 0 {
+		return nil
+	}
+
+	haltFn := func(s, p, o, g string) bool {
+		return true
+	}
+
 	var out []*Projection
-	g.ForSubjects(predicate, object, func(subject string) {
+	s.ForSubjects(poList[0][0], poList[0][1], graph, func(subject string) {
+		// Got a match for first q entry,
+		// check if it also satisfies all other q entries.
+		for _, po := range poList[1:] {
+			if !s.SomeWith(subject, po[0], po[1], graph, haltFn) {
+				// No match, try next subject.
+				return
+			}
+		}
+		// Matches all po tuples, add to results list.
 		p := &Projection{
 			Subject:   subject,
-			Graph:     g.Name,
-			QuadStore: g.QuadStore,
+			Graph:     graph,
+			QuadStore: s,
 		}
 		out = append(out, p)
 	})
 	return out
 }
 
-// // Query retrieves a list of all Projections in the store that match the given pattern and graph.
-// func (s *QuadStore) Query(pattern map[string][]string, graph string) []*Projection {
-// 	// TODO(js) Implement Query()
-// 	return nil
-// }
-
-// // Query retrieves a list of all Projections in the graph that match the given pattern.
-// func (g *Graph) Query(pattern map[string][]string) []*Projection {
-// 	// TODO(js) Implement Query()
-// 	return nil
-// }
+// Query retrieves a list of all Projections in the graph that match the given pattern.
+func (g *Graph) Query(pattern interface{}) []*Projection {
+	return g.QuadStore.Query(pattern, g.Name)
+}
 
 // Map returns a map containing the predicate terms for
 // the projection, mapped to their corresponding object terms.

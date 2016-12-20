@@ -3,6 +3,7 @@ package store4
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sort"
 )
 
@@ -20,7 +21,8 @@ type TripleCallbackFn func(s, p, o string)
 type TripleTestFn func(s, p, o string) bool
 
 // Graph is a convenience façade that simply
-// proxies calls to its associated QuadStore.
+// proxies calls to its associated QuadStore,
+// providing a graph 'view' over the store.
 type Graph struct {
 	Name      string
 	QuadStore *QuadStore
@@ -190,6 +192,8 @@ func (g *Graph) Size() uint64 {
 	if !ok {
 		return 0
 	}
+	log.Println()
+	log.Println("got size", gimpl.size)
 	return gimpl.size
 }
 

@@ -199,6 +199,7 @@ func ExampleQuadStore_ForEach() {
 		{"s3", "p3", "o3", "g2"},
 	})
 
+	// Iterate over all quads using ForEach.
 	var results [][4]string
 	s.ForEach(func(s, p, o, g string) {
 		results = append(results, [4]string{s, p, o, g})
