@@ -3,7 +3,6 @@ package store4
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"sort"
 )
 
@@ -207,8 +206,6 @@ func (g *GraphView) Size() uint64 {
 	if !ok {
 		return 0
 	}
-	log.Println()
-	log.Println("got size", gimpl.size)
 	return gimpl.size
 }
 
