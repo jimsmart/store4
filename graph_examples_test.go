@@ -114,8 +114,6 @@ func ExampleGraph_Size() {
 		{"s3", "p3", "o3"},
 	})
 
-	fmt.Println(g)
-
 	// How many triples are in the graph?
 	count := g.Size()
 	fmt.Println(count)
