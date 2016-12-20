@@ -16,7 +16,7 @@ func ExampleGraph_Query() {
 		{"s3", "p3", "o3"},
 	})
 
-	// Query for projections over all subjects
+	// Query for SubjectViews for all subjects
 	// that have p1=o1 and p2=o2.
 	pattern := map[string]string{
 		"p1": "o1",
@@ -41,7 +41,7 @@ func ExampleQuadStore_Query() {
 		{"s3", "p3", "o3", "g2"},
 	})
 
-	// Query for projections over all subjects in graph g1
+	// Query for SubjectViews for all subjects in graph g1
 	// that have p1=o1 and p2=o2.
 	pattern := map[string]string{
 		"p1": "o1",

@@ -10,36 +10,43 @@ import (
 // TripleCallbackFn is the function signature used to implement
 // callback functions that receive a triple.
 //
-// Used with calls to Graph's ForEach and ForEachWith.
+// Used with calls to GraphView's ForEach and ForEachWith.
 type TripleCallbackFn func(s, p, o string)
 
 // TripleTestFn is the function signature used to implement
 // callback functions performing triple tests.
 // A response of true means that the test has been passed.
 //
-// Used with calls to Graph's Every, EveryWith, Some and SomeWith.
+// Used with calls to GraphView's Every, EveryWith, Some and SomeWith.
 type TripleTestFn func(s, p, o string) bool
 
-// Graph is a convenience façade that simply
-// proxies calls to its associated QuadStore,
-// providing a graph 'view' over the store.
-type Graph struct {
-	Name      string
+// GraphView provides a graph-centric API
+// for working with subject-predicate-object triples.
+//
+// GraphView is a convenience façade that simply
+// proxies calls to its associated QuadStore.
+//
+// Returned by calls to NewGraph and QuadStore.GraphView.
+type GraphView struct {
+	Graph     string
 	QuadStore *QuadStore
 }
 
-// Graph returns a proxy-façade that provides a triple-based API for working with graphs within the store.
-func (s *QuadStore) Graph(name string) *Graph {
-	return &Graph{
-		Name:      name,
+// GraphView returns a proxy-façade that provides a
+// triple-based API for working with graphs in the store.
+func (s *QuadStore) GraphView(graph string) *GraphView {
+	return &GraphView{
+		Graph:     graph,
 		QuadStore: s,
 	}
 }
 
-// NewGraph returns an unnamed graph with a
+// NewGraph returns a GraphView over an unnamed graph with a
 // newly created QuadStore as its backing.
-func NewGraph(args ...interface{}) *Graph {
-	g := NewQuadStore().Graph("")
+//
+// It is shorthand for NewQuadStore(args).GraphView("")
+func NewGraph(args ...interface{}) *GraphView {
+	g := NewQuadStore().GraphView("")
 
 	for _, arg := range args {
 		switch arg := arg.(type) {
@@ -55,27 +62,28 @@ func NewGraph(args ...interface{}) *Graph {
 			}
 		}
 	}
-
 	return g
 }
 
-// Add a triple to the graph.
-// Returns true if the triple was a new triple,
-// or false if the triple already existed.
+// Add a quad to the underlying QuadStore,
+// with the given subject, predicate and object values
+// and this GraphView's Graph value.
+// Returns true if the quad was a new quad,
+// or false if the quad already existed.
 //
 // If any of the given terms are "*" (an asterisk),
 // then this method will panic. (The asterisk is reserved
 // for wildcard operations throughout the API).
-func (g *Graph) Add(subject, predicate, object string) bool {
-	return g.QuadStore.Add(subject, predicate, object, g.Name)
+func (g *GraphView) Add(subject, predicate, object string) bool {
+	return g.QuadStore.Add(subject, predicate, object, g.Graph)
 }
 
 // Count returns a count of triples in the graph that match the given pattern.
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *Graph) Count(subject, predicate, object string) uint64 {
-	return g.QuadStore.Count(subject, predicate, object, g.Name)
+func (g *GraphView) Count(subject, predicate, object string) uint64 {
+	return g.QuadStore.Count(subject, predicate, object, g.Graph)
 }
 
 // Every tests whether all triples in the graph pass the test
@@ -90,8 +98,8 @@ func (g *Graph) Count(subject, predicate, object string) uint64 {
 //
 // Acting like the 'for all' quantifier in maths, it should
 // be noted that Every returns true for an empty graph.
-func (g *Graph) Every(fn TripleTestFn) bool {
-	return g.QuadStore.EveryWith("*", "*", "*", g.Name, adaptTripleTestFn(fn))
+func (g *GraphView) Every(fn TripleTestFn) bool {
+	return g.QuadStore.EveryWith("*", "*", "*", g.Graph, adaptTripleTestFn(fn))
 }
 
 // EveryWith tests whether all triples in the graph that match the
@@ -108,37 +116,40 @@ func (g *Graph) Every(fn TripleTestFn) bool {
 // be noted that EveryWith returns true for an empty graph.
 // By extension, if the given parameters cause the iteration
 // set to be empty, then EveryWith also returns true.
-func (g *Graph) EveryWith(subject, predicate, object string, fn TripleTestFn) bool {
-	return g.QuadStore.EveryWith(subject, predicate, object, g.Name, adaptTripleTestFn(fn))
+func (g *GraphView) EveryWith(subject, predicate, object string, fn TripleTestFn) bool {
+	return g.QuadStore.EveryWith(subject, predicate, object, g.Graph, adaptTripleTestFn(fn))
 }
 
-// FindObjects returns a list of distinct object terms for all triples in the graph that match the given pattern.
+// FindObjects returns a list of distinct object terms for all
+// triples in the graph that match the given pattern.
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *Graph) FindObjects(subject, predicate string) []string {
-	return g.QuadStore.FindObjects(subject, predicate, g.Name)
+func (g *GraphView) FindObjects(subject, predicate string) []string {
+	return g.QuadStore.FindObjects(subject, predicate, g.Graph)
 }
 
-// FindPredicates returns a list of distinct predicate terms for all triples in the graph that match the given pattern.
+// FindPredicates returns a list of distinct predicate terms for all
+// triples in the graph that match the given pattern.
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *Graph) FindPredicates(subject, object string) []string {
-	return g.QuadStore.FindPredicates(subject, object, g.Name)
+func (g *GraphView) FindPredicates(subject, object string) []string {
+	return g.QuadStore.FindPredicates(subject, object, g.Graph)
 }
 
-// FindSubjects returns a list of distinct subject terms for all triples in the graph that match the given pattern.
+// FindSubjects returns a list of distinct subject terms for all
+// triples in the graph that match the given pattern.
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *Graph) FindSubjects(predicate, object string) []string {
-	return g.QuadStore.FindSubjects(predicate, object, g.Name)
+func (g *GraphView) FindSubjects(predicate, object string) []string {
+	return g.QuadStore.FindSubjects(predicate, object, g.Graph)
 }
 
 // ForEach executes the given callback once for each triple in the graph.
-func (g *Graph) ForEach(fn TripleCallbackFn) {
-	g.QuadStore.ForEachWith("*", "*", "*", g.Name, adaptTripleCallbackFn(fn))
+func (g *GraphView) ForEach(fn TripleCallbackFn) {
+	g.QuadStore.ForEachWith("*", "*", "*", g.Graph, adaptTripleCallbackFn(fn))
 }
 
 // ForEachWith executes the given callback once for each triple in the graph
@@ -146,8 +157,8 @@ func (g *Graph) ForEach(fn TripleCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *Graph) ForEachWith(subject, predicate, object string, fn TripleCallbackFn) {
-	g.QuadStore.ForEachWith(subject, predicate, object, g.Name, adaptTripleCallbackFn(fn))
+func (g *GraphView) ForEachWith(subject, predicate, object string, fn TripleCallbackFn) {
+	g.QuadStore.ForEachWith(subject, predicate, object, g.Graph, adaptTripleCallbackFn(fn))
 }
 
 // ForObjects executes the given callback once for each distinct object term
@@ -155,8 +166,8 @@ func (g *Graph) ForEachWith(subject, predicate, object string, fn TripleCallback
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *Graph) ForObjects(subject, predicate string, fn StringCallbackFn) {
-	g.QuadStore.ForObjects(subject, predicate, g.Name, fn)
+func (g *GraphView) ForObjects(subject, predicate string, fn StringCallbackFn) {
+	g.QuadStore.ForObjects(subject, predicate, g.Graph, fn)
 }
 
 // ForPredicates executes the given callback once for each distinct predicate term
@@ -164,8 +175,8 @@ func (g *Graph) ForObjects(subject, predicate string, fn StringCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *Graph) ForPredicates(subject, object string, fn StringCallbackFn) {
-	g.QuadStore.ForPredicates(subject, object, g.Name, fn)
+func (g *GraphView) ForPredicates(subject, object string, fn StringCallbackFn) {
+	g.QuadStore.ForPredicates(subject, object, g.Graph, fn)
 }
 
 // ForSubjects executes the given callback once for each distinct subject term
@@ -173,22 +184,26 @@ func (g *Graph) ForPredicates(subject, object string, fn StringCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *Graph) ForSubjects(predicate, object string, fn StringCallbackFn) {
-	g.QuadStore.ForSubjects(predicate, object, g.Name, fn)
+func (g *GraphView) ForSubjects(predicate, object string, fn StringCallbackFn) {
+	g.QuadStore.ForSubjects(predicate, object, g.Graph, fn)
 }
 
-// Removes triples from the graph. Returns true if triples were removed,
-// or false if no matching triples exist.
+// Remove quads from the underlying QuadStore,
+// with the given subject, predicate and object values
+// and this GraphView's Graph value.
+// Returns true if quads were removed,
+// or false if no matching quads exist.
+//
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *Graph) Remove(subject, predicate, object string) bool {
-	return g.QuadStore.Remove(subject, predicate, object, g.Name)
+func (g *GraphView) Remove(subject, predicate, object string) bool {
+	return g.QuadStore.Remove(subject, predicate, object, g.Graph)
 }
 
 // Size returns the total count of triples in the graph.
-func (g *Graph) Size() uint64 {
-	gimpl, ok := g.QuadStore.graphs[g.Name]
+func (g *GraphView) Size() uint64 {
+	gimpl, ok := g.QuadStore.graphs[g.Graph]
 	if !ok {
 		return 0
 	}
@@ -206,8 +221,8 @@ func (g *Graph) Size() uint64 {
 // an element is found, iteration is immediately halted and
 // Some returns true. Otherwise, if the callback returns
 // false for all triples, then Some returns false.
-func (g *Graph) Some(fn TripleTestFn) bool {
-	return g.QuadStore.SomeWith("*", "*", "*", g.Name, adaptTripleTestFn(fn))
+func (g *GraphView) Some(fn TripleTestFn) bool {
+	return g.QuadStore.SomeWith("*", "*", "*", g.Graph, adaptTripleTestFn(fn))
 }
 
 // SomeWith tests whether some triple matching the given pattern
@@ -219,14 +234,14 @@ func (g *Graph) Some(fn TripleTestFn) bool {
 // an element is found, iteration is immediately halted and
 // SomeWith returns true. Otherwise, if the callback returns
 // false for all triples, then SomeWith returns false.
-func (g *Graph) SomeWith(subject, predicate, object string, fn TripleTestFn) bool {
-	return g.QuadStore.SomeWith(subject, predicate, object, g.Name, adaptTripleTestFn(fn))
+func (g *GraphView) SomeWith(subject, predicate, object string, fn TripleTestFn) bool {
+	return g.QuadStore.SomeWith(subject, predicate, object, g.Graph, adaptTripleTestFn(fn))
 }
 
 // String returns the contents of the graph in a human-readable format.
-func (g *Graph) String() string {
+func (g *GraphView) String() string {
 	var buf bytes.Buffer
-	name := g.Name
+	name := g.Graph
 	if len(name) > 0 {
 		buf.WriteString(name)
 		buf.WriteByte('\n')

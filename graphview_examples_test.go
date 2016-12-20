@@ -26,7 +26,7 @@ func ExampleNewGraph() {
 	// [s2 p2 o2]
 }
 
-func ExampleQuadStore_Graph() {
+func ExampleQuadStore_GraphView() {
 
 	s := store4.NewQuadStore([][4]string{
 		{"s1", "p1", "o1", "g1"},
@@ -36,22 +36,22 @@ func ExampleQuadStore_Graph() {
 		{"s3", "p3", "o3", "g2"},
 	})
 
-	// Get Graph for graph g1.
-	g1 := s.Graph("g1")
+	// Get GraphView for graph g1.
+	g1 := s.GraphView("g1")
 	fmt.Println(g1)
 
-	// Get Graph for graph g2.
-	g2 := s.Graph("g2")
+	// Get GraphView for graph g2.
+	g2 := s.GraphView("g2")
 	fmt.Println(g2)
 
-	// Get Graph for graph g3 (which is empty).
-	g3 := s.Graph("g3")
+	// Get GraphView for graph g3 (which is empty).
+	g3 := s.GraphView("g3")
 	fmt.Println(g3)
 
-	// Use wildcard to get Graph interface for
+	// Use wildcard to get GraphView for
 	// union of all graphs. (Note that attempts
-	// to Add to this Graph will panic)
-	g4 := s.Graph("*")
+	// to Add to this GraphView will panic)
+	g4 := s.GraphView("*")
 	fmt.Println(g4)
 
 	// Output:
@@ -74,7 +74,7 @@ func ExampleQuadStore_Graph() {
 	// [s3 p3 o3]
 }
 
-func ExampleGraph_Add() {
+func ExampleGraphView_Add() {
 
 	triples := [][4]string{
 		{"s1", "p1", "o1"},
@@ -104,7 +104,7 @@ func ExampleGraph_Add() {
 	// [s3 p3 o3]
 }
 
-func ExampleGraph_Size() {
+func ExampleGraphView_Size() {
 
 	g := store4.NewGraph([][3]string{
 		{"s1", "p1", "o1"},
