@@ -56,7 +56,7 @@ func ExampleNewQuadStore() {
 
 	// A new empty store.
 	s1 := store4.NewQuadStore()
-	fmt.Println(s1.String())
+	fmt.Println(s1)
 
 	// A new store initialised with a slice of quads.
 	s2 := store4.NewQuadStore([][4]string{
@@ -64,7 +64,7 @@ func ExampleNewQuadStore() {
 		{"s1", "p2", "o2", "g1"},
 		{"s2", "p2", "o2", "g1"},
 	})
-	fmt.Println(s2.String())
+	fmt.Println(s2)
 
 	// A new store initialised with a slice of triples.
 	s3 := store4.NewQuadStore([][3]string{
@@ -72,7 +72,7 @@ func ExampleNewQuadStore() {
 		{"s1", "p2", "o2"},
 		{"s2", "p2", "o2"},
 	})
-	fmt.Println(s3.String())
+	fmt.Println(s3)
 
 	// Output:
 	// [s1 p1 o1 g1]
@@ -104,7 +104,7 @@ func ExampleQuadStore_Add() {
 		}
 	}
 
-	fmt.Println(s.String())
+	fmt.Println(s)
 	// Output:
 	// [s1 p1 o1 g1]
 	// [s1 p2 o2 g1]
