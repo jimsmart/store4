@@ -142,10 +142,10 @@ func (g *GraphView) Query(pattern interface{}) []*SubjectView {
 
 // Map returns a map containing the predicate terms for
 // the SubjectView's subject, mapped to their corresponding object terms.
-func (p *SubjectView) Map() map[string][]string {
+func (v *SubjectView) Map() map[string][]string {
 	m := make(map[string][]string)
-	p.ForPredicates("*", func(predicate string) {
-		m[predicate] = p.FindObjects(predicate)
+	v.QuadStore.ForPredicates(v.Subject, "*", v.Graph, func(predicate string) {
+		m[predicate] = v.QuadStore.FindObjects(v.Subject, predicate, v.Graph)
 	})
 	return m
 }
@@ -159,17 +159,17 @@ func (p *SubjectView) Map() map[string][]string {
 // If any of the given terms are "*" (an asterisk),
 // then this method will panic. (The asterisk is reserved
 // for wildcard operations throughout the API).
-func (p *SubjectView) Add(predicate, object string) bool {
+func (v *SubjectView) Add(predicate, object string) bool {
 	// TODO(js) Would it be better if Add() added to default graph if the SubjectView.Graph is set to "*" ?
-	return p.QuadStore.Add(p.Subject, predicate, object, p.Graph)
+	return v.QuadStore.Add(v.Subject, predicate, object, v.Graph)
 }
 
 // Count returns a count of tuples in the SubjectView that match the given pattern.
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (p *SubjectView) Count(predicate, object string) uint64 {
-	return p.QuadStore.Count(p.Subject, predicate, object, p.Graph)
+func (v *SubjectView) Count(predicate, object string) uint64 {
+	return v.QuadStore.Count(v.Subject, predicate, object, v.Graph)
 }
 
 // Every tests whether all tuples in the SubjectView pass the test
@@ -184,8 +184,8 @@ func (p *SubjectView) Count(predicate, object string) uint64 {
 //
 // Acting like the 'for all' quantifier in maths, it should
 // be noted that Every returns true for an empty store.
-func (p *SubjectView) Every(fn TupleTestFn) bool {
-	return p.QuadStore.EveryWith(p.Subject, "*", "*", p.Graph, adaptTupleTestFn(fn))
+func (v *SubjectView) Every(fn TupleTestFn) bool {
+	return v.QuadStore.EveryWith(v.Subject, "*", "*", v.Graph, adaptTupleTestFn(fn))
 }
 
 // EveryWith tests whether all tuples in the SubjectView that match the
@@ -202,8 +202,8 @@ func (p *SubjectView) Every(fn TupleTestFn) bool {
 // be noted that EveryWith returns true for an empty SubjectView.
 // By extension, if the given parameters cause the iteration
 // set to be empty, then EveryWith also returns true.
-func (p *SubjectView) EveryWith(predicate, object string, fn TupleTestFn) bool {
-	return p.QuadStore.EveryWith(p.Subject, predicate, object, p.Graph, adaptTupleTestFn(fn))
+func (v *SubjectView) EveryWith(predicate, object string, fn TupleTestFn) bool {
+	return v.QuadStore.EveryWith(v.Subject, predicate, object, v.Graph, adaptTupleTestFn(fn))
 }
 
 // FindObjects returns a list of distinct object terms for all
@@ -211,8 +211,8 @@ func (p *SubjectView) EveryWith(predicate, object string, fn TupleTestFn) bool {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (p *SubjectView) FindObjects(predicate string) []string {
-	return p.QuadStore.FindObjects(p.Subject, predicate, p.Graph)
+func (v *SubjectView) FindObjects(predicate string) []string {
+	return v.QuadStore.FindObjects(v.Subject, predicate, v.Graph)
 }
 
 // FindPredicates returns a list of distinct predicate terms for all
@@ -220,13 +220,13 @@ func (p *SubjectView) FindObjects(predicate string) []string {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (p *SubjectView) FindPredicates(object string) []string {
-	return p.QuadStore.FindPredicates(p.Subject, object, p.Graph)
+func (v *SubjectView) FindPredicates(object string) []string {
+	return v.QuadStore.FindPredicates(v.Subject, object, v.Graph)
 }
 
 // ForEach executes the given callback once for each tuple in the SubjectView.
-func (p *SubjectView) ForEach(fn TupleCallbackFn) {
-	p.QuadStore.ForEachWith(p.Subject, "*", "*", p.Graph, adaptTupleCallbackFn(fn))
+func (v *SubjectView) ForEach(fn TupleCallbackFn) {
+	v.QuadStore.ForEachWith(v.Subject, "*", "*", v.Graph, adaptTupleCallbackFn(fn))
 }
 
 // ForEachWith executes the given callback once for each tuple in the SubjectView
@@ -234,8 +234,8 @@ func (p *SubjectView) ForEach(fn TupleCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (p *SubjectView) ForEachWith(predicate, object string, fn TupleCallbackFn) {
-	p.QuadStore.ForEachWith(p.Subject, predicate, object, p.Graph, adaptTupleCallbackFn(fn))
+func (v *SubjectView) ForEachWith(predicate, object string, fn TupleCallbackFn) {
+	v.QuadStore.ForEachWith(v.Subject, predicate, object, v.Graph, adaptTupleCallbackFn(fn))
 }
 
 // ForObjects executes the given callback once for each distinct object term
@@ -243,8 +243,8 @@ func (p *SubjectView) ForEachWith(predicate, object string, fn TupleCallbackFn) 
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (p *SubjectView) ForObjects(predicate string, fn StringCallbackFn) {
-	p.QuadStore.ForObjects(p.Subject, predicate, p.Graph, fn)
+func (v *SubjectView) ForObjects(predicate string, fn StringCallbackFn) {
+	v.QuadStore.ForObjects(v.Subject, predicate, v.Graph, fn)
 }
 
 // ForPredicates executes the given callback once for each distinct predicate term
@@ -252,8 +252,8 @@ func (p *SubjectView) ForObjects(predicate string, fn StringCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (p *SubjectView) ForPredicates(object string, fn StringCallbackFn) {
-	p.QuadStore.ForPredicates(p.Subject, object, p.Graph, fn)
+func (v *SubjectView) ForPredicates(object string, fn StringCallbackFn) {
+	v.QuadStore.ForPredicates(v.Subject, object, v.Graph, fn)
 }
 
 // Remove quads from the underlying QuadStore,
@@ -264,13 +264,13 @@ func (p *SubjectView) ForPredicates(object string, fn StringCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (p *SubjectView) Remove(predicate, object string) bool {
-	return p.QuadStore.Remove(p.Subject, predicate, object, p.Graph)
+func (v *SubjectView) Remove(predicate, object string) bool {
+	return v.QuadStore.Remove(v.Subject, predicate, object, v.Graph)
 }
 
 // Size returns the total count of tuples in the SubjectView.
-func (p *SubjectView) Size() uint64 {
-	return p.QuadStore.Count(p.Subject, "*", "*", p.Graph)
+func (v *SubjectView) Size() uint64 {
+	return v.QuadStore.Count(v.Subject, "*", "*", v.Graph)
 }
 
 // Some tests whether some tuple in the SubjectView passes the test
@@ -282,8 +282,8 @@ func (p *SubjectView) Size() uint64 {
 // an element is found, iteration is immediately halted and
 // Some returns true. Otherwise, if the callback returns
 // false for all tuples, then Some returns false.
-func (p *SubjectView) Some(fn TupleTestFn) bool {
-	return p.QuadStore.SomeWith(p.Subject, "*", "*", p.Graph, adaptTupleTestFn(fn))
+func (v *SubjectView) Some(fn TupleTestFn) bool {
+	return v.QuadStore.SomeWith(v.Subject, "*", "*", v.Graph, adaptTupleTestFn(fn))
 }
 
 // SomeWith tests whether some tuple matching the given pattern
@@ -295,24 +295,24 @@ func (p *SubjectView) Some(fn TupleTestFn) bool {
 // an element is found, iteration is immediately halted and
 // SomeWith returns true. Otherwise, if the callback returns
 // false for all tuples, then SomeWith returns false.
-func (p *SubjectView) SomeWith(predicate, object string, fn TupleTestFn) bool {
-	return p.QuadStore.SomeWith(p.Subject, predicate, object, p.Graph, adaptTupleTestFn(fn))
+func (v *SubjectView) SomeWith(predicate, object string, fn TupleTestFn) bool {
+	return v.QuadStore.SomeWith(v.Subject, predicate, object, v.Graph, adaptTupleTestFn(fn))
 }
 
 // String returns the contents of the SubjectView in a human-readable format.
-func (p *SubjectView) String() string {
+func (v *SubjectView) String() string {
 	var buf bytes.Buffer
-	graph := p.Graph
+	graph := v.Graph
 	if len(graph) > 0 {
 		buf.WriteString(graph)
 		buf.WriteByte('\n')
 	}
-	buf.WriteString(p.Subject)
+	buf.WriteString(v.Subject)
 	buf.WriteByte('\n')
-	predicates := p.FindPredicates("*")
+	predicates := v.FindPredicates("*")
 	sort.Strings(predicates)
 	for _, predicate := range predicates {
-		objects := p.FindObjects(predicate)
+		objects := v.FindObjects(predicate)
 		sort.Strings(objects)
 		for _, object := range objects {
 			buf.WriteByte('[')
