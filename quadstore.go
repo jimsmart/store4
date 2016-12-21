@@ -219,21 +219,17 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
 		var count uint64
 		index0.forEachMatch(key0, func(key0 uint64, index1 indexMid) {
 			index1.forEachMatch(key1, func(key1 uint64, index2 indexLeaf) {
-				if key2 == 0 {
-					// key2 is a wildcard, delete the whole bucket.
-					count += uint64(len(index2))
-					delete(index1, key1)
-				} else {
+				index2.forEachMatch(key2, func(key2 uint64) {
 					// Delete single element if it exists.
 					_, ok := index2[key2]
 					if ok {
 						delete(index2, key2)
 						count++
 					}
-					// Cleanup empty buckets.
-					if len(index2) == 0 {
-						delete(index1, key1)
-					}
+				})
+				// Cleanup empty buckets.
+				if len(index2) == 0 {
+					delete(index1, key1)
 				}
 			})
 			// Cleanup empty buckets.
@@ -241,6 +237,7 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
 				delete(index0, key0)
 			}
 		})
+		// We do not remove the root bucket, even if it is empty.
 		return count
 	}
 
@@ -573,12 +570,12 @@ func (idx indexMid) forEachMatch(query uint64, fn func(key uint64, idx indexLeaf
 	})
 }
 
-// func (idx indexLeaf) forEachMatch(query uint64, fn func(key uint64)) {
-// 	idx.everyMatch(query, func(key uint64) bool {
-// 		fn(key)
-// 		return true
-// 	})
-// }
+func (idx indexLeaf) forEachMatch(query uint64, fn func(key uint64)) {
+	idx.everyMatch(query, func(key uint64) bool {
+		fn(key)
+		return true
+	})
+}
 
 // FindGraphs returns a list of distinct graph names for all quads in the store that match the given pattern.
 //
@@ -669,7 +666,7 @@ func (s *QuadStore) ForSubjects(predicate, object, graph string, fn StringCallba
 				// Lookup o, loop s.
 				lookupIndex0LoopIndex1(g.ospIndex, oid, collectResultsFn)
 			} else {
-				// If no params given, iterate just the subjects.
+				// If no params given, iterate all the subjects.
 				loopIndex0(g.spoIndex, collectResultsFn)
 			}
 		}
