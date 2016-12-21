@@ -386,11 +386,11 @@ func ExampleGraphView_FindObjects() {
 	sort.Strings(results)
 	fmt.Println(results)
 
-	all := s.GraphView("*")
+	union := s.GraphView("*")
 
 	// Find objects for triples in any graph that have
 	// both subject s1 and predicate p2.
-	results = all.FindObjects("s2", "p2")
+	results = union.FindObjects("s2", "p2")
 	sort.Strings(results)
 	fmt.Println(results)
 
@@ -492,12 +492,12 @@ func ExampleGraphView_ForSubjects() {
 	sort.Strings(results2)
 	fmt.Println(results2)
 
-	all := s.GraphView("*")
+	union := s.GraphView("*")
 
 	var results3 []string
 	// Iterate over subjects for triples in any graph that have
 	// both predicate p2 and object o2.
-	all.ForSubjects("p2", "o2", func(s string) {
+	union.ForSubjects("p2", "o2", func(s string) {
 		results3 = append(results3, s)
 	})
 	sort.Strings(results3)

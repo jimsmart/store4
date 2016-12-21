@@ -133,7 +133,7 @@ func (g *GraphView) Query(pattern interface{}) []*SubjectView {
 	return g.QuadStore.Query(pattern, g.Graph)
 }
 
-// Map returns a map containing the predicate terms for
+// Map returns a 'property/value' map containing the predicate terms for
 // the SubjectView's subject, mapped to their corresponding object terms.
 func (v *SubjectView) Map() map[string][]string {
 	m := make(map[string][]string)
@@ -183,7 +183,7 @@ func (v *SubjectView) Empty() bool {
 // true for all tuples, then Every returns true.
 //
 // Acting like the 'for all' quantifier in maths, it should
-// be noted that Every returns true for an empty store.
+// be noted that Every returns true for an empty SubjectView.
 func (v *SubjectView) Every(fn TupleTestFn) bool {
 	return v.QuadStore.EveryWith(v.Subject, "*", "*", v.Graph, adaptTupleTestFn(fn))
 }

@@ -1737,4 +1737,75 @@ var _ = Describe("QuadStore", func() {
 		})
 	})
 
+	Describe("Query", func() {
+
+		store := NewQuadStore([][4]string{
+			{"s1", "p1", "o1", ""},
+			{"s1", "p1", "o2", ""},
+			{"s1", "p2", "o2", ""},
+			{"s2", "p1", "o1", ""},
+			{"s1", "p2", "o3", "c4"},
+		})
+
+		Context("when called with an unknown type", func() {
+			It("should panic", func() {
+				shouldPanicFn := func() {
+					store.Query(false, "*")
+				}
+				Expect(shouldPanicFn).To(Panic())
+			})
+		})
+
+		Context("when called with an empty pattern", func() {
+			pattern := [][2]string{}
+			results := store.Query(pattern, "*")
+			It("should return nothing", func() {
+				Expect(len(results)).To(Equal(0))
+			})
+		})
+
+		Context("when called with non-existing pattern", func() {
+			pattern := [][2]string{{"p0", "o0"}}
+			results := store.Query(pattern, "*")
+			It("should return nothing", func() {
+				Expect(len(results)).To(Equal(0))
+			})
+		})
+
+		Context("when called with a matching pattern as [][2]string", func() {
+			pattern := [][2]string{{"p1", "o1"}, {"p1", "o2"}}
+			results := store.Query(pattern, "*")
+			It("should return the correct results", func() {
+				Expect(len(results)).To(Equal(1))
+				Expect(results[0].Subject).To(Equal("s1"))
+			})
+		})
+
+		Context("when called with a matching pattern as [2]string", func() {
+			pattern := [2]string{"p2", "o2"}
+			results := store.Query(pattern, "*")
+			It("should return the correct results", func() {
+				Expect(len(results)).To(Equal(1))
+				Expect(results[0].Subject).To(Equal("s1"))
+			})
+		})
+
+		Context("when called with a matching pattern as map[string]string", func() {
+			pattern := map[string]string{"p1": "o1", "p2": "o3"}
+			results := store.Query(pattern, "*")
+			It("should return the correct results", func() {
+				Expect(len(results)).To(Equal(1))
+				Expect(results[0].Subject).To(Equal("s1"))
+			})
+		})
+
+		Context("when called with a matching pattern as map[string][]string", func() {
+			pattern := map[string][]string{"p1": {"o1", "o2"}, "p2": {"o3"}}
+			results := store.Query(pattern, "*")
+			It("should return the correct results", func() {
+				Expect(len(results)).To(Equal(1))
+				Expect(results[0].Subject).To(Equal("s1"))
+			})
+		})
+	})
 })
