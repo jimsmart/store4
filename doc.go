@@ -60,11 +60,13 @@
 //
 // Concurrency
 //
-// Package store4 is not concurrency safe (while being modified).
+// Package store4 is not concurrency safe while being modified.
 //
 // Dependencies
 //
-// No external dependencies.
+// Standard library.
+//
+// Ginkgo and Gomega to run tests.
 //
 // License
 //
@@ -73,8 +75,10 @@
 //
 // Additional credits
 //
-// The internals of store4 draw heavily from the implementation
-// of N3Store, a component of N3.js. The N3.js library is
+// The internals of QuadStore draw heavily from the implementation
+// of N3Store, a component of N3.js.
+//
+// The N3.js library is
 // copyrighted by Ruben Verborgh and released under the MIT License.
 // https://github.com/RubenVerborgh/N3.js
 package store4
