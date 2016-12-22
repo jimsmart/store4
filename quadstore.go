@@ -27,6 +27,8 @@ type StringCallbackFn func(s string)
 
 // QuadStore is an in-memory string-based quad store.
 type QuadStore struct {
+	OnAdd    QuadCallbackFn
+	OnRemove QuadCallbackFn
 	// size is a count of quads in the store.
 	size uint64
 	// graphs hold the store's graphs, keyed by graph name.
@@ -158,6 +160,9 @@ func (s *QuadStore) Add(subject, predicate, object, graph string) bool {
 	// Update size.
 	s.size++
 	g.size++
+	if s.OnAdd != nil {
+		s.OnAdd(subject, predicate, object, graph)
+	}
 	return true
 }
 
@@ -205,6 +210,7 @@ func (s *QuadStore) getOrCreateID(term string) uint64 {
 // match-everything wildcard for that term.
 func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
 	termToID := s.termToID
+	idToTerm := s.idToTerm
 	graphs := s.graphs
 	// Find internal identifiers for terms.
 	sid, sok := termToID[subject]
@@ -215,50 +221,53 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
 		return false
 	}
 
-	removeFromIndex := func(index0 indexRoot, key0, key1, key2 uint64) uint64 {
-		var count uint64
+	removeFromIndex := func(index0 indexRoot, key0, key1, key2 uint64, fn func(key0, key1, key2 uint64)) {
 		index0.forEachMatch(key0, func(key0 uint64, index1 indexMid) {
 			index1.forEachMatch(key1, func(key1 uint64, index2 indexLeaf) {
 				index2.forEachMatch(key2, func(key2 uint64) {
-					// Delete single element if it exists.
-					_, ok := index2[key2]
-					if ok {
-						delete(index2, key2)
-						count++
+					delete(index2, key2)
+					// To ensure the indexes are in a consistent state
+					// if/when we call OnRemove, we do any cleanup immediately.
+					if len(index2) == 0 {
+						delete(index1, key1)
+						if len(index1) == 0 {
+							delete(index0, key0)
+						}
+					}
+					if fn != nil {
+						fn(key0, key1, key2)
 					}
 				})
-				// Cleanup empty buckets.
-				if len(index2) == 0 {
-					delete(index1, key1)
-				}
 			})
-			// Cleanup empty buckets.
-			if len(index1) == 0 {
-				delete(index0, key0)
-			}
 		})
 		// We do not remove the root bucket, even if it is empty.
-		return count
 	}
 
 	removed := false
 	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
-		// Remove matching elements from SPO index.
-		count := removeFromIndex(g.spoIndex, sid, pid, oid)
-		if count == 0 {
-			return
+
+		// This is only called while processing the SPO index.
+		removeFn := func(sid, pid, oid uint64) {
+			removed = true
+			// Update size.
+			s.size--
+			g.size--
+			if s.OnRemove != nil {
+				subject := idToTerm[sid]
+				predicate := idToTerm[pid]
+				object := idToTerm[oid]
+				s.OnRemove(subject, predicate, object, graph)
+			}
 		}
-		s.size -= count
-		g.size -= count
-		removed = true
+
+		// Remove matching elements from all indexes.
+		removeFromIndex(g.posIndex, pid, oid, sid, nil)
+		removeFromIndex(g.ospIndex, oid, sid, pid, nil)
+		removeFromIndex(g.spoIndex, sid, pid, oid, removeFn)
 		// Cleanup empty graphs.
 		if g.size == 0 {
 			delete(graphs, graph)
-			return
 		}
-		// Remove matching elements from other indexes.
-		removeFromIndex(g.ospIndex, oid, sid, pid)
-		removeFromIndex(g.posIndex, pid, oid, sid)
 	})
 	// This is a weak compromise for never releasing terms. :/
 	if removed && s.size == 0 {
