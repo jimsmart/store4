@@ -27,20 +27,39 @@ type StringCallbackFn func(s string)
 
 // QuadStore is an in-memory string-based quad store.
 type QuadStore struct {
-	OnAdd    QuadCallbackFn
+	// OnAdd is called whenever a new quad is added to the store
+	// (post-addition).
+	OnAdd QuadCallbackFn
+	// OnRemove is called whenever a quad is removed from the store
+	// (post-removal).
 	OnRemove QuadCallbackFn
 	// size is a count of quads in the store.
 	size uint64
-	// graphs hold the store's graphs, keyed by graph name.
+	// graphs hold the store's graphs.
 	graphs graphMap
-	// symbolTable maps terms to symbolInfo.
+	// termToID maps terms to internal IDs.
 	termToID map[string]uint64
-	// idToTerm maps internal IDs to terms.
-	idToTerm map[uint64]string
+	// idToTermInfo maps internal IDs to term info.
+	idToTermInfo map[uint64]*termInfo
 	// nextID holds the next term ID to issue.
 	nextID uint64
 }
 
+// idToTerm returns the term for a given ID.
+// The given ID must exist.
+// This function replaces the simple map lookup
+// after refactoring for reference counting.
+func (s *QuadStore) idToTerm(id uint64) string {
+	return s.idToTermInfo[id].term
+}
+
+// termInfo holds details for each term.
+type termInfo struct {
+	term     string // The term itself.
+	refCount uint64 // Reference count.
+}
+
+// graphMap is a map holding the store's graphs, keyed by graph name.
 type graphMap map[string]*indexedGraph
 
 // indexedGraph represents a graph of triples,
@@ -71,8 +90,14 @@ func NewQuadStore(args ...interface{}) *QuadStore {
 	s := &QuadStore{
 		graphs: make(map[string]*indexedGraph),
 	}
-	s.resetTermMaps()
-
+	s.termToID = make(map[string]uint64)
+	s.idToTermInfo = make(map[uint64]*termInfo)
+	// We use "*" as a wildcard, so we give it ID 0
+	// to make things easy elsewhere.
+	s.termToID["*"] = 0
+	// Start IDs from 1.
+	s.nextID = 1
+	// Initialise store with any given data.
 	for _, arg := range args {
 		switch arg := arg.(type) {
 		default:
@@ -98,21 +123,12 @@ func NewQuadStore(args ...interface{}) *QuadStore {
 	return s
 }
 
-func (s *QuadStore) resetTermMaps() {
-	s.termToID = make(map[string]uint64)
-	s.idToTerm = make(map[uint64]string)
-	// We use "*" as a wildcard, so we give it ID 0
-	// to make things easy elsewhere.
-	s.termToID["*"] = 0
-	// Start IDs from 1.
-	s.nextID = 1
-}
-
 // Size returns the total count of quads in the store.
 func (s *QuadStore) Size() uint64 {
 	return s.size
 }
 
+// Empty returns true is the store has no contents.
 func (s *QuadStore) Empty() bool {
 	return s.size == 0
 }
@@ -152,7 +168,10 @@ func (s *QuadStore) Add(subject, predicate, object, graph string) bool {
 	}
 	// Add triple to all indexes.
 	if !addToIndex(g.spoIndex, sid, pid, oid) {
-		// Already exists, nothing to do.
+		// Already exists.
+		s.releaseRef(sid)
+		s.releaseRef(pid)
+		s.releaseRef(oid)
 		return false
 	}
 	addToIndex(g.posIndex, pid, oid, sid)
@@ -189,18 +208,37 @@ func addToIndex(index0 indexRoot, key0, key1, key2 uint64) bool {
 
 // getOrCreateID returns an internal ID for a given term.
 // If no existing ID is present, it creates a new one.
+// For any existing term, it also increments the reference count.
 func (s *QuadStore) getOrCreateID(term string) uint64 {
 	id, ok := s.termToID[term]
-	if !ok {
-		// TODO(js) Nothing ever gets removed from either termToID or idToTerm.
-		// This could be fixed by adding reference counting for terms.
-		// This is only an issue if the store has repeated add/removes with unique terms.
+	if ok {
+		s.idToTermInfo[id].refCount++
+	} else {
 		id = s.nextID
-		s.termToID[term] = id
-		s.idToTerm[id] = term
 		s.nextID++
+		s.termToID[term] = id
+		s.idToTermInfo[id] = &termInfo{
+			term:     term,
+			refCount: 1,
+		}
 	}
 	return id
+}
+
+// releaseRef decrements a term's reference count.
+// When a term is no longer referenced, it is removed
+// from all maps.
+// The given id must exist or releaseRef will aspolde.
+func (s *QuadStore) releaseRef(id uint64) {
+	info := s.idToTermInfo[id]
+	c := info.refCount
+	c--
+	if c == 0 {
+		delete(s.termToID, info.term)
+		delete(s.idToTermInfo, id)
+		return
+	}
+	info.refCount = c
 }
 
 // Removes quads from the store. Returns true if quads were removed,
@@ -248,13 +286,15 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
 
 		// This is only called while processing the SPO index.
 		removeFn := func(sid, pid, oid uint64) {
-			removed = true
-			// Update size.
 			s.size--
 			g.size--
 			if s.OnRemove != nil {
-				s.OnRemove(idToTerm[sid], idToTerm[pid], idToTerm[oid], graph)
+				s.OnRemove(idToTerm(sid), idToTerm(pid), idToTerm(oid), graph)
 			}
+			s.releaseRef(sid)
+			s.releaseRef(pid)
+			s.releaseRef(oid)
+			removed = true
 		}
 
 		// Remove matching elements from all indexes.
@@ -266,10 +306,6 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
 			delete(graphs, graph)
 		}
 	})
-	// This is a weak compromise for never releasing terms. :/
-	if removed && s.size == 0 {
-		s.resetTermMaps()
-	}
 	return removed
 }
 
@@ -430,11 +466,11 @@ func (s *QuadStore) EveryWith(subject, predicate, object, graph string, fn QuadT
 	// Inlined, so it has easy access to term map and q results.
 	indexEveryWith := func(index0 indexRoot, key0, key1, key2 uint64, idx0, idx1, idx2 int) bool {
 		return index0.everyMatch(key0, func(key0 uint64, index1 indexMid) bool {
-			q[idx0] = idToTerm[key0]
+			q[idx0] = idToTerm(key0)
 			return index1.everyMatch(key1, func(key1 uint64, index2 indexLeaf) bool {
-				q[idx1] = idToTerm[key1]
+				q[idx1] = idToTerm(key1)
 				return index2.everyMatch(key2, func(key2 uint64) bool {
-					q[idx2] = idToTerm[key2]
+					q[idx2] = idToTerm(key2)
 					return fn(q[0], q[1], q[2], q[3])
 				})
 			})
@@ -463,15 +499,17 @@ func (s *QuadStore) EveryWith(subject, predicate, object, graph string, fn QuadT
 				// If no params given, iterate subject and predicates first.
 				return indexEveryWith(g.spoIndex, sid, pid, oid, 0, 1, 2)
 			}
+			// The magic numbers (slot numbers) above should really be properties of the index itself.
+			//
+			// In an ideal world, the decision as to which index to use should be function
+			// that looks at given params and what indexes are present - then it would be possible
+			// to add or remove indexes.
 		}
 	})
 }
 
-// Inversion of control - the index buckets take care
-// of any wilcards and call back with details.
-
-// Doing this with callbacks saves us from ever
-// allocating memory to return a list of keys for any given bucket.
+// Inversion of control - the index buckets themselves
+// take care of any wilcards and call back as they need to.
 
 // These four functions all operate identically,
 // but differ because of the specific types at each layer.
@@ -647,7 +685,7 @@ func (s *QuadStore) ForSubjects(predicate, object, graph string, fn StringCallba
 		_, ok := seen[id]
 		if !ok {
 			seen[id] = struct{}{}
-			fn(idToTerm[id])
+			fn(idToTerm(id))
 		}
 	}
 
@@ -719,7 +757,7 @@ func (s *QuadStore) ForPredicates(subject, object, graph string, fn StringCallba
 		_, ok := seen[id]
 		if !ok {
 			seen[id] = struct{}{}
-			fn(idToTerm[id])
+			fn(idToTerm(id))
 		}
 	}
 
@@ -791,7 +829,7 @@ func (s *QuadStore) ForObjects(subject, predicate, graph string, fn StringCallba
 		_, ok := seen[id]
 		if !ok {
 			seen[id] = struct{}{}
-			fn(idToTerm[id])
+			fn(idToTerm(id))
 		}
 	}
 
