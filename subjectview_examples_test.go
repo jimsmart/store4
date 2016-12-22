@@ -151,6 +151,67 @@ func ExampleGraphView_SubjectView() {
 	// [p5 o5]
 }
 
+func ExampleQuadStore_SubjectViews() {
+
+	s := store4.NewQuadStore([][4]string{
+		{"s1", "p1", "o1", "g1"},
+		{"s1", "p2", "o2", "g1"},
+		{"s2", "p2", "o2", "g1"},
+		{"s2", "p2", "o3", "g2"},
+		{"s3", "p3", "o3", "g2"},
+	})
+
+	// Get SubjectViews for all subjects in the store.
+	results1 := s.SubjectViews("*", "*", "*")
+	fmt.Println(len(results1))
+	// (Exact order may vary)
+	//fmt.Println(results1[0])
+	//fmt.Println(results1[1])
+
+	// Get SubjectViews for all subjects featuring
+	// predicate p2 in graph g2.
+	results2 := s.SubjectViews("p2", "*", "g2")
+	fmt.Println(len(results2))
+	fmt.Println(results2[0])
+
+	// Output:
+	// 3
+	// 1
+	// g2
+	// s2
+	// [p2 o3]
+}
+
+func ExampleGraphView_SubjectViews() {
+
+	g := store4.NewGraph([][3]string{
+		{"s1", "p1", "o1"},
+		{"s1", "p2", "o2"},
+		{"s2", "p2", "o2"},
+		{"s2", "p2", "o3"},
+		{"s3", "p3", "o3"},
+	})
+
+	// Get SubjectViews for all subjects in the graph.
+	results1 := g.SubjectViews("*", "*")
+	fmt.Println(len(results1))
+	// (Exact order may vary)
+	//fmt.Println(results1[0])
+	//fmt.Println(results1[1])
+
+	// Get SubjectViews for all subjects in the graph
+	// featuring predicate p3.
+	results2 := g.SubjectViews("p3", "*")
+	fmt.Println(len(results2))
+	fmt.Println(results2[0])
+
+	// Output:
+	// 3
+	// 1
+	// s3
+	// [p3 o3]
+}
+
 func ExampleSubjectView_Count() {
 
 	g := store4.NewGraph([][3]string{
