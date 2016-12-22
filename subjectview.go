@@ -165,7 +165,6 @@ func (v *SubjectView) Map() map[string][]string {
 // then this method will panic. (The asterisk is reserved
 // for wildcard operations throughout the API).
 func (v *SubjectView) Add(predicate, object string) bool {
-	// TODO(js) Would it be better if Add() added to default graph if the SubjectView.Graph is set to "*" ?
 	return v.QuadStore.Add(v.Subject, predicate, object, v.Graph)
 }
 
