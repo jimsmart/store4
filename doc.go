@@ -1,10 +1,9 @@
-// Package store4 provides a fast in-memory string-based quad store
-// (graphs of triples).
+// Package store4 provides a fast in-memory string-based quad store,
+// with graph and subject views.
 //
-// Simple
+// QuadStore API
 //
-// Package store4 does not feature any specific support
-// for RDF — its API is purely string-based, bare-boned and minimal.
+// The QuadStore API is based around subject-predicate-object-graph quads.
 //
 //  // Add some quads to a store.
 //  s := store4.NewQuadStore()
@@ -12,21 +11,12 @@
 //  s.Add("Alice", "knows", "Bob", "")
 //  s.Add("Alice", "knows", "Charlie", "")
 //  s.Add("Charlie", "knows", "Bob", "")
-//  s.Add("Bob", "isa", "Cat", "")
-//  s.Add("play", "with", "strings!", "₍˄·͈༝·͈˄₎◞ ̑̑ෆ⃛")
-//  s.Add("_:bn", "<urn:foo:bar>", `"baz"`, "<qux>")
 //
 //  // Find everyone that Alice knows, in any graph.
 //  list := s.FindObjects("Alice", "knows", "*")
-//  fmt.Println(list)
-//  // Output (exact order may vary):
-//  // [Bob Charlie]
 //
 //  // Find everyone who knows Charlie, in the 'unnamed' graph.
 //  x := s.FindSubjects("knows", "Charlie", "")
-//  fmt.Println(x)
-//  // Output:
-//  // [Alice]
 //
 //  // Remove all statements about Charlie, from all graphs.
 //  s.Remove("Charlie", "*", "Charlie", "*")
@@ -41,14 +31,23 @@
 //
 //  // Iterate over quads matching given pattern.
 //  s.ForEachWith("*", "*", "Bob", "*", func(s, p, o, g string) {
-//      fmt.Println(s, p, o, g)
+//      // ...
 //  })
-//  // Output (exact order may vary):
-//  // Alice knows Bob
-//  // Charlie knows Bob
 //
 // For cancellable iterators see Some and Every, and
 // their filtering counterparts SomeWith and EveryWith.
+//
+// GraphView API
+//
+// The GraphView API is based around subject-predicate-object triples.
+//
+//  TODO
+//
+// SubjectView API
+//
+// The SubjectView API is based around predicate-object tuples.
+//
+//  TODO
 //
 // Internals
 //
@@ -56,7 +55,7 @@
 // Each index is composed of three layers of native Go maps.
 //
 // Additionally, the store only holds a single reference to each
-// string term it has seen.
+// string term.
 //
 // Concurrency
 //
