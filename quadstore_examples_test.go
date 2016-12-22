@@ -9,51 +9,6 @@ import (
 
 // TODO(js) Write an example for QuadStore.SubjectViews.
 
-// quadSlice implements sort.Interface for [][4]string
-// ordering by fields GSPO [3,0,1,2].
-type quadSlice [][4]string
-
-func (q quadSlice) Len() int { return len(q) }
-
-func (q quadSlice) Swap(i, j int) { q[i], q[j] = q[j], q[i] }
-
-func (q quadSlice) Less(i, j int) bool {
-	qi, qj := q[i], q[j]
-	// Graph.
-	gi, gj := qi[3], qj[3]
-	if gi < gj {
-		return true
-	}
-	if gi > gj {
-		return false
-	}
-	// Subject.
-	si, sj := qi[0], qj[0]
-	if si < sj {
-		return true
-	}
-	if si > sj {
-		return false
-	}
-	// Predicate.
-	pi, pj := qi[1], qj[1]
-	if pi < pj {
-		return true
-	}
-	if pi > pj {
-		return false
-	}
-	// Object.
-	oi, oj := qi[2], qj[2]
-	return oi < oj
-}
-
-func sortQuads(slice [][4]string) {
-	sort.Sort(quadSlice(slice))
-}
-
-// func Example_titleHere() {}
-
 func ExampleNewQuadStore() {
 
 	// A new empty store.
@@ -407,7 +362,7 @@ func ExampleQuadStore_ForEach() {
 
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	sortQuads(results)
+	store4.SortQuads(results)
 	for _, q := range results {
 		fmt.Println(q)
 	}
@@ -438,7 +393,7 @@ func ExampleQuadStore_ForEachWith() {
 
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	sortQuads(results)
+	store4.SortQuads(results)
 	for _, q := range results {
 		fmt.Println(q)
 	}

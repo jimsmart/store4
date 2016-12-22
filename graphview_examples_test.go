@@ -7,41 +7,6 @@ import (
 	"github.com/jimsmart/store4"
 )
 
-// tripleSlice implements sort.Interface for [][3]string
-// ordering by fields SPO [0,1,2].
-type tripleSlice [][3]string
-
-func (t tripleSlice) Len() int { return len(t) }
-
-func (t tripleSlice) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
-
-func (t tripleSlice) Less(i, j int) bool {
-	ti, tj := t[i], t[j]
-	// Subject.
-	si, sj := ti[0], tj[0]
-	if si < sj {
-		return true
-	}
-	if si > sj {
-		return false
-	}
-	// Predicate.
-	pi, pj := ti[1], tj[1]
-	if pi < pj {
-		return true
-	}
-	if pi > pj {
-		return false
-	}
-	// Object.
-	oi, oj := ti[2], tj[2]
-	return oi < oj
-}
-
-func sortTriples(slice [][3]string) {
-	sort.Sort(tripleSlice(slice))
-}
-
 func ExampleNewGraph() {
 
 	// A new empty graph.
@@ -419,7 +384,7 @@ func ExampleGraphView_ForEach() {
 
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	sortTriples(results)
+	store4.SortTriples(results)
 	for _, q := range results {
 		fmt.Println(q)
 	}
@@ -450,7 +415,7 @@ func ExampleGraphView_ForEachWith() {
 
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	sortTriples(results)
+	store4.SortTriples(results)
 	for _, q := range results {
 		fmt.Println(q)
 	}

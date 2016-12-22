@@ -7,33 +7,6 @@ import (
 	"github.com/jimsmart/store4"
 )
 
-// tupleSlice implements sort.Interface for [][2]string
-// ordering by fields PO [0,1].
-type tupleSlice [][2]string
-
-func (t tupleSlice) Len() int { return len(t) }
-
-func (t tupleSlice) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
-
-func (t tupleSlice) Less(i, j int) bool {
-	ti, tj := t[i], t[j]
-	// Predicate.
-	si, sj := ti[0], tj[0]
-	if si < sj {
-		return true
-	}
-	if si > sj {
-		return false
-	}
-	// Object.
-	oi, oj := ti[1], tj[1]
-	return oi < oj
-}
-
-func sortTuples(slice [][2]string) {
-	sort.Sort(tupleSlice(slice))
-}
-
 func ExampleGraphView_Query() {
 
 	s := store4.NewQuadStore([][4]string{
@@ -407,6 +380,80 @@ func ExampleSubjectView_ForEachWith() {
 	// p1 o1
 }
 
+func ExampleSubjectView_ForPredicates() {
+
+	s := store4.NewQuadStore([][4]string{
+		{"s1", "p1", "o1", "g1"},
+		{"s1", "p2", "o2", "g1"},
+		{"s2", "p2", "o2", "g1"},
+		{"s2", "p2", "o3", "g2"},
+		{"s3", "p3", "o3", "g2"},
+	})
+
+	v := s.SubjectView("s1", "g1")
+
+	var results1 []string
+	// Iterate over all predicates for subject s1 in graph g1.
+	v.ForPredicates("*", func(p string) {
+		results1 = append(results1, p)
+	})
+	// (We only sort the results before printing
+	// because iteration order is unstable)
+	sort.Strings(results1)
+	fmt.Println(results1)
+
+	var results2 []string
+	// Iterate over all predicates for subject s1 in graph g1
+	// that have object o1.
+	v.ForPredicates("o1", func(p string) {
+		results2 = append(results2, p)
+	})
+	// (We only sort the results before printing
+	// because iteration order is unstable)
+	sort.Strings(results2)
+	fmt.Println(results2)
+
+	// Output:
+	// [p1 p2]
+	// [p1]
+}
+
+func ExampleSubjectView_ForObjects() {
+
+	s := store4.NewQuadStore([][4]string{
+		{"s1", "p1", "o1", "g1"},
+		{"s1", "p2", "o2", "g1"},
+		{"s2", "p2", "o2", "g1"},
+		{"s2", "p2", "o3", "g2"},
+		{"s3", "p3", "o3", "g2"},
+	})
+
+	v := s.SubjectView("s1", "g1")
+
+	var results1 []string
+	// Iterate over all objects for subject s1 in graph g1.
+	v.ForObjects("*", func(o string) {
+		results1 = append(results1, o)
+	})
+	// (We only sort the results before printing
+	// because iteration order is unstable)
+	sort.Strings(results1)
+	fmt.Println(results1)
+
+	var results2 []string
+	// Iterate over objects for subject s1 in graph g1
+	// that have predicate p2.
+	v.ForObjects("p2", func(o string) {
+		results2 = append(results2, o)
+	})
+	sort.Strings(results2)
+	fmt.Println(results2)
+
+	// Output:
+	// [o1 o2]
+	// [o2]
+}
+
 func ExampleSubjectView_Map() {
 
 	g := store4.NewGraph([][3]string{
@@ -431,4 +478,94 @@ func ExampleSubjectView_Map() {
 	// Output:
 	// [o1]
 	// [o2]
+}
+
+func ExampleSubjectView_Remove() {
+
+	s := store4.NewQuadStore([][4]string{
+		{"s1", "p1", "o1", "g1"},
+		{"s1", "p2", "o2", "g1"},
+		{"s2", "p2", "o2", "g1"},
+		{"s2", "p2", "o3", "g2"},
+		{"s3", "p3", "o3", "g2"},
+	})
+
+	v := s.SubjectView("s1", "g1")
+	fmt.Println(v.Size())
+
+	// Remove a specific tuple from the view.
+	v.Remove("p2", "o2")
+	fmt.Println(v.Size())
+
+	// Remove all tuples that have predicate p1.
+	v.Remove("p1", "*")
+	fmt.Println(v.Size())
+
+	fmt.Println(s.Size())
+
+	// Output:
+	// 2
+	// 1
+	// 0
+	// 3
+}
+
+func ExampleSubjectView_Some() {
+
+	s := store4.NewQuadStore([][4]string{
+		{"s1", "p1", "o1", "g1"},
+		{"s1", "p2", "o2", "g1"},
+		{"s2", "p2", "o2", "g1"},
+		{"s2", "p2", "o3", "g2"},
+		{"s3", "p3", "o3", "g2"},
+	})
+
+	v1 := s.SubjectView("s1", "g1")
+	v2 := s.SubjectView("s2", "*")
+
+	o1TestFn := func(p, o string) bool {
+		return o == "o1"
+	}
+
+	// Is there some tuple in the view with object o1?
+	result := v1.Some(o1TestFn)
+	fmt.Println(result)
+
+	// Is there some tuple in the other view with object o1?
+	result = v2.Some(o1TestFn)
+	fmt.Println(result)
+
+	// Output:
+	// true
+	// false
+}
+
+func ExampleSubjectView_SomeWith() {
+
+	s := store4.NewQuadStore([][4]string{
+		{"s1", "p1", "o1", "g1"},
+		{"s1", "p2", "o2", "g1"},
+		{"s2", "p2", "o2", "g1"},
+		{"s2", "p2", "o3", "g2"},
+		{"s3", "p3", "o3", "g2"},
+	})
+
+	alwaysTrueFn := func(p, o string) bool {
+		return true
+	}
+
+	v1 := s.SubjectView("s1", "g1")
+	v2 := s.SubjectView("s2", "*")
+
+	// Is there some tuple in the view with object o1?
+	result := v1.SomeWith("*", "o1", alwaysTrueFn)
+	fmt.Println(result)
+
+	// Is there some tuple in the other view with predicate p2?
+	result = v2.SomeWith("p2", "*", alwaysTrueFn)
+	fmt.Println(result)
+
+	// Output:
+	// true
+	// true
 }
