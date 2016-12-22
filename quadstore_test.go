@@ -258,8 +258,8 @@ var _ = Describe("QuadStore", func() {
 		})
 
 		Describe("when removing an existing quad", func() {
-			It("should return true", func() {
-				Expect(store.Remove("s1", "p1", "o4", "")).To(BeTrue())
+			It("should return 1", func() {
+				Expect(store.Remove("s1", "p1", "o4", "")).To(Equal(uint64(1)))
 			})
 
 			It("should decrease the size", func() {
@@ -268,8 +268,8 @@ var _ = Describe("QuadStore", func() {
 		})
 
 		Describe("when removing a non-existing quad", func() {
-			It("should return false", func() {
-				Expect(store.Remove("s1", "p1", "o5", "")).To(BeFalse())
+			It("should return zero", func() {
+				Expect(store.Remove("s1", "p1", "o5", "")).To(Equal(uint64(0)))
 			})
 
 			It("should not change the size", func() {
@@ -278,8 +278,8 @@ var _ = Describe("QuadStore", func() {
 		})
 
 		Describe("when removing all quads using wildcards", func() {
-			It("should return true", func() {
-				Expect(store.Remove("*", "*", "*", "")).To(BeTrue())
+			It("should return 3", func() {
+				Expect(store.Remove("*", "*", "*", "*")).To(Equal(uint64(3)))
 			})
 
 			It("should result in an empty store", func() {
@@ -1366,8 +1366,8 @@ var _ = Describe("QuadStore", func() {
 		Describe("Remove", func() {
 
 			Context("when trying to remove a quad with a non-existing subject", func() {
-				It("should return false", func() {
-					Expect(store.Remove("s0", "p1", "o1", "")).To(BeFalse())
+				It("should return zero", func() {
+					Expect(store.Remove("s0", "p1", "o1", "")).To(Equal(uint64(0)))
 				})
 				It("should still have size 5", func() {
 					Expect(store.Size()).To(Equal(uint64(5)))
@@ -1375,8 +1375,8 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			Context("when trying to remove a quad with a non-existing predicate", func() {
-				It("should return false", func() {
-					Expect(store.Remove("s1", "p0", "o1", "")).To(BeFalse())
+				It("should return zero", func() {
+					Expect(store.Remove("s1", "p0", "o1", "")).To(Equal(uint64(0)))
 				})
 				It("should still have size 5", func() {
 					Expect(store.Size()).To(Equal(uint64(5)))
@@ -1384,8 +1384,8 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			Context("when trying to remove a quad with a non-existing object", func() {
-				It("should return false", func() {
-					Expect(store.Remove("s1", "p1", "o0", "")).To(BeFalse())
+				It("should return zero", func() {
+					Expect(store.Remove("s1", "p1", "o0", "")).To(Equal(uint64(0)))
 				})
 				It("should still have size 5", func() {
 					Expect(store.Size()).To(Equal(uint64(5)))
@@ -1393,8 +1393,8 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			Context("when trying to remove a quad with a non-existing graph", func() {
-				It("should return false", func() {
-					Expect(store.Remove("s1", "p1", "o1", "c0")).To(BeFalse())
+				It("should return zero", func() {
+					Expect(store.Remove("s1", "p1", "o1", "c0")).To(Equal(uint64(0)))
 				})
 				It("should still have size 5", func() {
 					Expect(store.Size()).To(Equal(uint64(5)))
@@ -1402,8 +1402,8 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			Context("when trying to remove quads with a non-existing subject and wildcards", func() {
-				It("should return false", func() {
-					Expect(store.Remove("s0", "*", "*", "*")).To(BeFalse())
+				It("should return zero", func() {
+					Expect(store.Remove("s0", "*", "*", "*")).To(Equal(uint64(0)))
 				})
 				It("should still have size 5", func() {
 					Expect(store.Size()).To(Equal(uint64(5)))
@@ -1411,8 +1411,8 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			Context("when trying to remove quads with a non-existing predicate and wildcards", func() {
-				It("should return false", func() {
-					Expect(store.Remove("*", "p0", "*", "*")).To(BeFalse())
+				It("should return zero", func() {
+					Expect(store.Remove("*", "p0", "*", "*")).To(Equal(uint64(0)))
 				})
 				It("should still have size 5", func() {
 					Expect(store.Size()).To(Equal(uint64(5)))
@@ -1420,8 +1420,8 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			Context("when trying to remove quads with a non-existing object and wildcards", func() {
-				It("should return false", func() {
-					Expect(store.Remove("*", "*", "o0", "*")).To(BeFalse())
+				It("should return zero", func() {
+					Expect(store.Remove("*", "*", "o0", "*")).To(Equal(uint64(0)))
 				})
 				It("should still have size 5", func() {
 					Expect(store.Size()).To(Equal(uint64(5)))
@@ -1429,8 +1429,8 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			Context("when trying to remove quads with a non-existing graph and wildcards", func() {
-				It("should return false", func() {
-					Expect(store.Remove("*", "*", "*", "c0")).To(BeFalse())
+				It("should return zero", func() {
+					Expect(store.Remove("*", "*", "*", "c0")).To(Equal(uint64(0)))
 				})
 				It("should still have size 5", func() {
 					Expect(store.Size()).To(Equal(uint64(5)))
@@ -1438,8 +1438,8 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			Context("when trying to remove a quad with existing non-matching parameters", func() {
-				It("should return false", func() {
-					Expect(store.Remove("s2", "p2", "o1", "")).To(BeFalse())
+				It("should return zero", func() {
+					Expect(store.Remove("s2", "p2", "o1", "")).To(Equal(uint64(0)))
 				})
 				It("should still have size 5", func() {
 					Expect(store.Size()).To(Equal(uint64(5)))
@@ -1447,8 +1447,8 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			Context("when removing an existing quad from the default graph", func() {
-				It("should return true", func() {
-					Expect(store.Remove("s1", "p1", "o1", "")).To(BeTrue())
+				It("should return 1", func() {
+					Expect(store.Remove("s1", "p1", "o1", "")).To(Equal(uint64(1)))
 				})
 				It("should have size 4", func() {
 					Expect(store.Size()).To(Equal(uint64(4)))
@@ -1456,8 +1456,8 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			Context("when removing an existing quad from the non-default graph", func() {
-				It("should return true", func() {
-					Expect(store.Remove("s1", "p2", "o3", "c4")).To(BeTrue())
+				It("should return 1", func() {
+					Expect(store.Remove("s1", "p2", "o3", "c4")).To(Equal(uint64(1)))
 				})
 				It("should have size 3", func() {
 					Expect(store.Size()).To(Equal(uint64(3)))
@@ -1467,7 +1467,7 @@ var _ = Describe("QuadStore", func() {
 			Context("when adding and removing a quad", func() {
 				It("should have unchanged size", func() {
 					Expect(store.Add("s5", "p5", "o5", "c5")).To(BeTrue())
-					Expect(store.Remove("s5", "p5", "o5", "c5")).To(BeTrue())
+					Expect(store.Remove("s5", "p5", "o5", "c5")).To(Equal(uint64(1)))
 					Expect(store.Size()).To(Equal(uint64(3)))
 				})
 			})
@@ -1488,28 +1488,28 @@ var _ = Describe("QuadStore", func() {
 
 				Context("and non-existing graph parameter", func() {
 					It("should have unchanged size", func() {
-						Expect(store.Remove("*", "*", "*", "c0")).To(BeFalse())
+						Expect(store.Remove("*", "*", "*", "c0")).To(Equal(uint64(0)))
 						Expect(store.Size()).To(Equal(uint64(5)))
 					})
 				})
 
 				Context("and non-existing subject parameter", func() {
 					It("should have unchanged size", func() {
-						Expect(store.Remove("s0", "*", "*", "*")).To(BeFalse())
+						Expect(store.Remove("s0", "*", "*", "*")).To(Equal(uint64(0)))
 						Expect(store.Size()).To(Equal(uint64(5)))
 					})
 				})
 
 				Context("and non-existing predicate parameter", func() {
 					It("should have unchanged size", func() {
-						Expect(store.Remove("*", "p0", "*", "*")).To(BeFalse())
+						Expect(store.Remove("*", "p0", "*", "*")).To(Equal(uint64(0)))
 						Expect(store.Size()).To(Equal(uint64(5)))
 					})
 				})
 
 				Context("and non-existing object parameter", func() {
 					It("should have unchanged size", func() {
-						Expect(store.Remove("*", "*", "o0", "*")).To(BeFalse())
+						Expect(store.Remove("*", "*", "o0", "*")).To(Equal(uint64(0)))
 						Expect(store.Size()).To(Equal(uint64(5)))
 					})
 				})
@@ -1517,29 +1517,29 @@ var _ = Describe("QuadStore", func() {
 				//
 
 				Context("and an existing graph parameter", func() {
-					It("should have size", func() {
-						Expect(store.Remove("*", "*", "*", "")).To(BeTrue())
+					It("should have size 1", func() {
+						Expect(store.Remove("*", "*", "*", "")).To(Equal(uint64(4)))
 						Expect(store.Size()).To(Equal(uint64(1)))
 					})
 				})
 
 				Context("and an existing subject parameter", func() {
 					It("should have size 1", func() {
-						Expect(store.Remove("s1", "*", "*", "*")).To(BeTrue())
+						Expect(store.Remove("s1", "*", "*", "*")).To(Equal(uint64(4)))
 						Expect(store.Size()).To(Equal(uint64(1)))
 					})
 				})
 
 				Context("and an existing predicate parameter", func() {
 					It("should have size 3", func() {
-						Expect(store.Remove("*", "p2", "*", "*")).To(BeTrue())
+						Expect(store.Remove("*", "p2", "*", "*")).To(Equal(uint64(2)))
 						Expect(store.Size()).To(Equal(uint64(3)))
 					})
 				})
 
 				Context("and an existing object parameter", func() {
 					It("should have size 3", func() {
-						Expect(store.Remove("*", "*", "o2", "*")).To(BeTrue())
+						Expect(store.Remove("*", "*", "o2", "*")).To(Equal(uint64(2)))
 						Expect(store.Size()).To(Equal(uint64(3)))
 					})
 				})
@@ -1806,6 +1806,70 @@ var _ = Describe("QuadStore", func() {
 				Expect(len(results)).To(Equal(1))
 				Expect(results[0].Subject).To(Equal("s1"))
 			})
+		})
+	})
+
+	Describe("OnAdd", func() {
+
+		store := NewQuadStore()
+
+		It("should be called when adding a quad", func() {
+			var subject, predicate, object, graph string
+			store.OnAdd = func(s, p, o, g string) {
+				subject = s
+				predicate = p
+				object = o
+				graph = g
+			}
+			store.Add("s1", "p1", "o1", "g1")
+			Expect(subject).To(Equal("s1"))
+			Expect(predicate).To(Equal("p1"))
+			Expect(object).To(Equal("o1"))
+			Expect(graph).To(Equal("g1"))
+		})
+
+		It("should not be called when adding an already existing quad", func() {
+			count := 0
+			store.OnAdd = func(s, p, o, g string) {
+				count++
+			}
+			store.Add("s1", "p1", "o1", "g1")
+			Expect(count).To(Equal(0))
+		})
+	})
+
+	Describe("OnRemove", func() {
+
+		store := NewQuadStore([][4]string{
+			{"s1", "p1", "o1", ""},
+			{"s1", "p1", "o2", ""},
+			{"s1", "p2", "o2", ""},
+			{"s2", "p1", "o1", ""},
+			{"s1", "p2", "o3", "c4"},
+		})
+
+		It("should be called when removing a quad", func() {
+			var subject, predicate, object, graph string
+			store.OnRemove = func(s, p, o, g string) {
+				subject = s
+				predicate = p
+				object = o
+				graph = g
+			}
+			store.Remove("s1", "p1", "o1", "")
+			Expect(subject).To(Equal("s1"))
+			Expect(predicate).To(Equal("p1"))
+			Expect(object).To(Equal("o1"))
+			Expect(graph).To(Equal(""))
+		})
+
+		It("should be called when removing multiple quads", func() {
+			count := 0
+			store.OnRemove = func(s, p, o, g string) {
+				count++
+			}
+			store.Remove("s1", "*", "*", "")
+			Expect(count).To(Equal(2))
 		})
 	})
 })

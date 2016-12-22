@@ -31,6 +31,7 @@ type GraphView struct {
 	QuadStore *QuadStore
 }
 
+// GraphView returns a GraphView for the given graph name.
 func (s *QuadStore) GraphView(graph string) *GraphView {
 	return &GraphView{
 		Graph:     graph,
@@ -38,6 +39,14 @@ func (s *QuadStore) GraphView(graph string) *GraphView {
 	}
 }
 
+// TODO(js) Consistent terminology: pattern vs parameters (here) and term vs parameters (elsewhere).
+// Also: subject(etc) vs subject term, graph vs graph name.
+
+// GraphViews returns a list of GraphViews for graphs in the store
+// that contain triples that match the given pattern.
+//
+// Passing "*" (an asterisk) for any parameter acts as a
+// match-everything wildcard for that term.
 func (s *QuadStore) GraphViews(subject, predicate, object string) []*GraphView {
 	var out []*GraphView
 	s.ForGraphs(subject, predicate, object, func(graph string) {
@@ -212,13 +221,11 @@ func (g *GraphView) ForSubjects(predicate, object string, fn StringCallbackFn) {
 // Remove quads from the underlying QuadStore,
 // with the given subject, predicate and object values
 // and this GraphView's Graph value.
-// Returns true if quads were removed,
-// or false if no matching quads exist.
-//
+// Returns the number of quads that were removed.
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *GraphView) Remove(subject, predicate, object string) bool {
+func (g *GraphView) Remove(subject, predicate, object string) uint64 {
 	return g.QuadStore.Remove(subject, predicate, object, g.Graph)
 }
 

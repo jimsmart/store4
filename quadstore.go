@@ -212,7 +212,9 @@ func addToIndex(index0 indexRoot, key0, key1, key2 uint64) bool {
 func (s *QuadStore) getOrCreateID(term string) uint64 {
 	id, ok := s.termToID[term]
 	if ok {
-		s.idToTermInfo[id].refCount++
+		if id != 0 {
+			s.idToTermInfo[id].refCount++
+		}
 	} else {
 		id = s.nextID
 		s.nextID++
@@ -241,12 +243,11 @@ func (s *QuadStore) releaseRef(id uint64) {
 	info.refCount = c
 }
 
-// Removes quads from the store. Returns true if quads were removed,
-// or false if no matching quads exist.
+// Removes quads from the store. Returns the number of quads removed.
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
+func (s *QuadStore) Remove(subject, predicate, object, graph string) uint64 {
 	termToID := s.termToID
 	idToTerm := s.idToTerm
 	graphs := s.graphs
@@ -256,7 +257,7 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
 	oid, ook := termToID[object]
 	// If any of the terms don't exist, then there are no matches.
 	if !sok || !pok || !ook {
-		return false
+		return 0
 	}
 
 	removeFromIndex := func(index0 indexRoot, key0, key1, key2 uint64, fn func(key0, key1, key2 uint64)) {
@@ -281,7 +282,7 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
 		// We do not remove the root bucket, even if it is empty.
 	}
 
-	removed := false
+	var count uint64
 	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 
 		// This is only called while processing the SPO index.
@@ -294,7 +295,7 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
 			s.releaseRef(sid)
 			s.releaseRef(pid)
 			s.releaseRef(oid)
-			removed = true
+			count++
 		}
 
 		// Remove matching elements from all indexes.
@@ -306,7 +307,7 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
 			delete(graphs, graph)
 		}
 	})
-	return removed
+	return count
 }
 
 // Count returns a count of quads in the store that match the given pattern.

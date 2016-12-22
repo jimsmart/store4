@@ -33,6 +33,7 @@ type SubjectView struct {
 	QuadStore *QuadStore
 }
 
+// SubjectView returns a SubjectView for the given subject and graph.
 func (s *QuadStore) SubjectView(subject, graph string) *SubjectView {
 	p := &SubjectView{
 		Subject:   subject,
@@ -42,6 +43,11 @@ func (s *QuadStore) SubjectView(subject, graph string) *SubjectView {
 	return p
 }
 
+// SubjectViews returns a list of SubjectViews for subjects that
+// match the given pattern.
+//
+// Passing "*" (an asterisk) for any parameter acts as a
+// match-everything wildcard for that term.
 func (s *QuadStore) SubjectViews(predicate, object, graph string) []*SubjectView {
 	var out []*SubjectView
 	s.ForSubjects(predicate, object, graph, func(subject string) {
@@ -55,10 +61,16 @@ func (s *QuadStore) SubjectViews(predicate, object, graph string) []*SubjectView
 	return out
 }
 
+// SubjectView returns a SubjectView for the given subject.
 func (g *GraphView) SubjectView(subject string) *SubjectView {
 	return g.QuadStore.SubjectView(subject, g.Graph)
 }
 
+// SubjectViews returns a list of SubjectViews for subjects that
+// match the given pattern.
+//
+// Passing "*" (an asterisk) for any parameter acts as a
+// match-everything wildcard for that term.
 func (g *GraphView) SubjectViews(predicate, object string) []*SubjectView {
 	return g.QuadStore.SubjectViews(predicate, object, g.Graph)
 }
@@ -259,12 +271,11 @@ func (v *SubjectView) ForPredicates(object string, fn StringCallbackFn) {
 // Remove quads from the underlying QuadStore,
 // with the given predicate and object values
 // and this SubjectView's Subject and Graph values.
-// Returns true if quads were removed,
-// or false if no matching quads exist.
+// Returns the number of quads removed.
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (v *SubjectView) Remove(predicate, object string) bool {
+func (v *SubjectView) Remove(predicate, object string) uint64 {
 	return v.QuadStore.Remove(v.Subject, predicate, object, v.Graph)
 }
 
