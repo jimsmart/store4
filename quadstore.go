@@ -253,10 +253,7 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) bool {
 			s.size--
 			g.size--
 			if s.OnRemove != nil {
-				subject := idToTerm[sid]
-				predicate := idToTerm[pid]
-				object := idToTerm[oid]
-				s.OnRemove(subject, predicate, object, graph)
+				s.OnRemove(idToTerm[sid], idToTerm[pid], idToTerm[oid], graph)
 			}
 		}
 
