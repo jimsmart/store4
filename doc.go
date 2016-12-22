@@ -43,19 +43,24 @@
 //
 //  TODO
 //
+// Obtain a GraphView by calling QuadStore.GraphView, QuadStore.GraphViews
+// — or NewGraph.
+//
 // SubjectView API
 //
-// The SubjectView API is based around predicate-object tuples.
+// The SubjectView API is based around predicate-object (property/value) tuples.
 //
 //  TODO
 //
+// SubjectViews are returned by calls to Query, SubjectView and SubjectViews.
+//
 // Internals
 //
-// Each graph is indexed by SPO, POS and OSP.
-// Each index is composed of three layers of native Go maps.
+// Inside QuadStore, each graph is indexed by SPO, POS and OSP,
+// with each index being composed of three layers of native Go maps.
 //
-// Additionally, the store only holds a single reference to each
-// string term.
+// Internally, the store uses numeric identifiers for index keys,
+// and only holds a single reference to each string term.
 //
 // Concurrency
 //
