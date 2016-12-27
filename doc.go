@@ -13,10 +13,10 @@
 //  s.Add("Charlie", "knows", "Bob", "")
 //
 //  // Find everyone that Alice knows, in any graph.
-//  list := s.FindObjects("Alice", "knows", "*")
+//  x := s.FindObjects("Alice", "knows", "*")
 //
 //  // Find everyone who knows Charlie, in the 'unnamed' graph.
-//  x := s.FindSubjects("knows", "Charlie", "")
+//  y := s.FindSubjects("knows", "Charlie", "")
 //
 //  // Remove all statements about Charlie, from all graphs.
 //  s.Remove("Charlie", "*", "Charlie", "*")
@@ -54,9 +54,9 @@
 //
 // SubjectViews are returned by calls to Query, SubjectView and SubjectViews.
 //
-// Internals
+// Implementation
 //
-// Inside QuadStore, each graph is indexed by SPO, POS and OSP,
+// Inside QuadStore each graph is indexed by SPO, POS and OSP,
 // with each index being composed of three layers of native Go maps.
 //
 // Internally, the store uses numeric identifiers for index keys,
