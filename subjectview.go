@@ -193,8 +193,10 @@ func (v *SubjectView) Empty() bool {
 // Every returns false. Otherwise, if the callback returns
 // true for all tuples, then Every returns true.
 //
-// Acting like the 'for all' quantifier in maths, it should
-// be noted that Every returns true for an empty SubjectView.
+// If no tuples match the given terms, or the SubjectView is empty,
+// then Every returns false. Note that this differs from
+// the interpretation of 'every' in some other languages,
+// which may return true for an empty iteration set.
 func (v *SubjectView) Every(fn TupleTestFn) bool {
 	return v.QuadStore.EveryWith(v.Subject, "*", "*", v.Graph, adaptTupleTestFn(fn))
 }
@@ -209,10 +211,10 @@ func (v *SubjectView) Every(fn TupleTestFn) bool {
 // EveryWith returns false. Otherwise, if the callback returns
 // true for all tuples, then EveryWith returns true.
 //
-// Acting like the 'for all' quantifier in maths, it should
-// be noted that EveryWith returns true for an empty SubjectView.
-// By extension, if the given parameters cause the iteration
-// set to be empty, then EveryWith also returns true.
+// If no tuples match the given terms, or the SubjectView is empty,
+// then EveryWith returns false. Note that this differs from
+// the interpretation of 'every' in some other languages,
+// which may return true for an empty iteration set.
 func (v *SubjectView) EveryWith(predicate, object string, fn TupleTestFn) bool {
 	return v.QuadStore.EveryWith(v.Subject, predicate, object, v.Graph, adaptTupleTestFn(fn))
 }

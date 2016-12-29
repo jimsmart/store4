@@ -126,8 +126,10 @@ func (g *GraphView) Empty() bool {
 // Every returns false. Otherwise, if the callback returns
 // true for all triples, then Every returns true.
 //
-// Acting like the 'for all' quantifier in maths, it should
-// be noted that Every returns true for an empty graph.
+// If no triples match the given terms, or the graph is empty,
+// then Every returns false. Note that this differs from
+// the interpretation of 'every' in some other languages,
+// which may return true for an empty iteration set.
 func (g *GraphView) Every(fn TripleTestFn) bool {
 	return g.QuadStore.EveryWith("*", "*", "*", g.Graph, adaptTripleTestFn(fn))
 }
@@ -142,10 +144,10 @@ func (g *GraphView) Every(fn TripleTestFn) bool {
 // EveryWith returns false. Otherwise, if the callback returns
 // true for all triples, then EveryWith returns true.
 //
-// Acting like the 'for all' quantifier in maths, it should
-// be noted that EveryWith returns true for an empty graph.
-// By extension, if the given parameters cause the iteration
-// set to be empty, then EveryWith also returns true.
+// If no triples match the given terms, or the graph is empty,
+// then EveryWith returns false. Note that this differs from
+// the interpretation of 'every' in some other languages,
+// which may return true for an empty iteration set.
 func (g *GraphView) EveryWith(subject, predicate, object string, fn TripleTestFn) bool {
 	return g.QuadStore.EveryWith(subject, predicate, object, g.Graph, adaptTripleTestFn(fn))
 }
