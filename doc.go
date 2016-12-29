@@ -41,7 +41,14 @@
 //
 // The GraphView API is based around subject-predicate-object triples.
 //
-//  TODO
+//  // Get a view over the 'unnamed' graph.
+//  g := s.GraphView("")
+//
+//  // Find everyone that Alice knows in this graph view.
+//  x := g.FindObjects("Alice", "knows")
+//
+//  // Add a triple to the graph (adds a quad to the store).
+//  g.Add("Charlie", "knows", "Bob")
 //
 // Obtain a GraphView by calling QuadStore.GraphView, QuadStore.GraphViews
 // — or NewGraph.
@@ -50,7 +57,17 @@
 //
 // The SubjectView API is based around predicate-object (property/value) tuples.
 //
-//  TODO
+//  // Get a view over the subject Alice in 'unnamed' graph.
+//  v := s.SubjectView("Alice", "")
+//
+//  // Find all predicates for this subject view.
+//  props := v.FindPredicates("*")
+//
+//  // Add a tuple to this view (adds a quad to the store).
+//  v.Add("knows", "Eve")
+//
+//  // Get a map of all predicate-object mappings for this subject view.
+//  m := v.Map()
 //
 // SubjectViews are returned by calls to Query, SubjectView and SubjectViews.
 //
