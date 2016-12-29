@@ -69,11 +69,11 @@ For a full coverage report, try:
 $ go test -coverprofile=coverage.out && go tool cover -html=coverage.out
 ```
 
-# License
+## License
 
 Package store4 is copyright 2016 by Jim Smart and released under the [MIT License](LICENSE.md)
 
-## Additional credits
+### Additional credits
 
 The internals of QuadStore draw heavily from the implementation of N3Store, a component of [N3.js](https://github.com/RubenVerborgh/N3.js). The N3.js library is copyrighted by Ruben Verborgh and released under the MIT License.
 
