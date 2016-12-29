@@ -385,38 +385,9 @@ func (s *QuadStore) ForEach(fn QuadCallbackFn) {
 func (s *QuadStore) ForEachWith(subject, predicate, object, graph string, fn QuadCallbackFn) {
 	iterAllFnWrapper := func(s, p, o, g string) bool {
 		fn(s, p, o, g)
-		return true
+		return false
 	}
-	s.EveryWith(subject, predicate, object, graph, iterAllFnWrapper)
-}
-
-// Some tests whether some quad in the store passes the test
-// implemented by the given function.
-//
-// The given callback is
-// executed once for each quad present in the store until
-// Some finds one where the callback returns true. If such
-// an element is found, iteration is immediately halted and
-// Some returns true. Otherwise, if the callback returns
-// false for all quads, then Some returns false.
-func (s *QuadStore) Some(fn QuadTestFn) bool {
-	return s.SomeWith("*", "*", "*", "*", fn)
-}
-
-// SomeWith tests whether some quad matching the given pattern
-// passes the test implemented by the given function.
-//
-// The given callback is
-// executed once for each quad matching the given pattern until
-// SomeWith finds one where the callback returns true. If such
-// an element is found, iteration is immediately halted and
-// SomeWith returns true. Otherwise, if the callback returns
-// false for all quads, then SomeWith returns false.
-func (s *QuadStore) SomeWith(subject, predicate, object, graph string, fn QuadTestFn) bool {
-	someFn := func(s, p, o, g string) bool {
-		return !fn(s, p, o, g)
-	}
-	return !s.EveryWith(subject, predicate, object, graph, someFn)
+	s.SomeWith(subject, predicate, object, graph, iterAllFnWrapper)
 }
 
 // Every tests whether all quads in the store pass the test
@@ -450,6 +421,35 @@ func (s *QuadStore) Every(fn QuadTestFn) bool {
 // By extension, if the given parameters cause the iteration
 // set to be empty, then EveryWith also returns true.
 func (s *QuadStore) EveryWith(subject, predicate, object, graph string, fn QuadTestFn) bool {
+	everyFn := func(s, p, o, g string) bool {
+		return !fn(s, p, o, g)
+	}
+	return !s.SomeWith(subject, predicate, object, graph, everyFn)
+}
+
+// Some tests whether some quad in the store passes the test
+// implemented by the given function.
+//
+// The given callback is
+// executed once for each quad present in the store until
+// Some finds one where the callback returns true. If such
+// an element is found, iteration is immediately halted and
+// Some returns true. Otherwise, if the callback returns
+// false for all quads, then Some returns false.
+func (s *QuadStore) Some(fn QuadTestFn) bool {
+	return s.SomeWith("*", "*", "*", "*", fn)
+}
+
+// SomeWith tests whether some quad matching the given pattern
+// passes the test implemented by the given function.
+//
+// The given callback is
+// executed once for each quad matching the given pattern until
+// SomeWith finds one where the callback returns true. If such
+// an element is found, iteration is immediately halted and
+// SomeWith returns true. Otherwise, if the callback returns
+// false for all quads, then SomeWith returns false.
+func (s *QuadStore) SomeWith(subject, predicate, object, graph string, fn QuadTestFn) bool {
 	termToID := s.termToID
 	idToTerm := s.idToTerm
 	graphs := s.graphs
@@ -459,18 +459,18 @@ func (s *QuadStore) EveryWith(subject, predicate, object, graph string, fn QuadT
 	oid, ook := termToID[object]
 	// If any of the terms don't exist, then there are no matches.
 	if !sok || !pok || !ook {
-		return true
+		return false
 	}
 
 	var q [4]string // spog quad
 
 	// Inlined, so it has easy access to term map and q results.
-	indexEveryWith := func(index0 indexRoot, key0, key1, key2 uint64, idx0, idx1, idx2 int) bool {
-		return index0.everyMatch(key0, func(key0 uint64, index1 indexMid) bool {
+	indexSomeWith := func(index0 indexRoot, key0, key1, key2 uint64, idx0, idx1, idx2 int) bool {
+		return index0.someMatch(key0, func(key0 uint64, index1 indexMid) bool {
 			q[idx0] = idToTerm(key0)
-			return index1.everyMatch(key1, func(key1 uint64, index2 indexLeaf) bool {
+			return index1.someMatch(key1, func(key1 uint64, index2 indexLeaf) bool {
 				q[idx1] = idToTerm(key1)
-				return index2.everyMatch(key2, func(key2 uint64) bool {
+				return index2.someMatch(key2, func(key2 uint64) bool {
 					q[idx2] = idToTerm(key2)
 					return fn(q[0], q[1], q[2], q[3])
 				})
@@ -478,27 +478,27 @@ func (s *QuadStore) EveryWith(subject, predicate, object, graph string, fn QuadT
 		})
 	}
 
-	return graphs.everyMatch(graph, func(graph string, g *indexedGraph) bool {
+	return graphs.someMatch(graph, func(graph string, g *indexedGraph) bool {
 		q[3] = graph
 		// Choose the optimal index, based on which fields are wildcards.
 		if sid != 0 {
 			if oid != 0 {
 				// If subject and object are given, the ospIndex will be fastest.
-				return indexEveryWith(g.ospIndex, oid, sid, pid, 2, 0, 1)
+				return indexSomeWith(g.ospIndex, oid, sid, pid, 2, 0, 1)
 			} else {
 				// If subject and possibly predicate are given, the spoIndex will be fastest.
-				return indexEveryWith(g.spoIndex, sid, pid, oid, 0, 1, 2)
+				return indexSomeWith(g.spoIndex, sid, pid, oid, 0, 1, 2)
 			}
 		} else {
 			if pid != 0 {
 				// If only predicate and possibly object are given, the posIndex will be fastest.
-				return indexEveryWith(g.posIndex, pid, oid, sid, 1, 2, 0)
+				return indexSomeWith(g.posIndex, pid, oid, sid, 1, 2, 0)
 			} else if oid != 0 {
 				// If only object is given, the ospIndex will be fastest.
-				return indexEveryWith(g.ospIndex, oid, sid, pid, 2, 0, 1)
+				return indexSomeWith(g.ospIndex, oid, sid, pid, 2, 0, 1)
 			} else {
 				// If no params given, iterate subject and predicates first.
-				return indexEveryWith(g.spoIndex, sid, pid, oid, 0, 1, 2)
+				return indexSomeWith(g.spoIndex, sid, pid, oid, 0, 1, 2)
 			}
 			// The magic numbers (slot numbers) above should really be properties of the index itself.
 			//
@@ -515,14 +515,14 @@ func (s *QuadStore) EveryWith(subject, predicate, object, graph string, fn QuadT
 // These four functions all operate identically,
 // but differ because of the specific types at each layer.
 
-func (gm graphMap) everyMatch(query string, fn func(key string, g *indexedGraph) bool) bool {
+func (gm graphMap) someMatch(query string, fn func(key string, g *indexedGraph) bool) bool {
 	// Either loop over all graphs, or over just one selected graph.
 	if query == "*" {
 		// All graphs.
 		for key, g := range gm {
-			if !fn(key, g) {
+			if fn(key, g) {
 				// break
-				return false
+				return true
 			}
 		}
 	} else {
@@ -532,16 +532,16 @@ func (gm graphMap) everyMatch(query string, fn func(key string, g *indexedGraph)
 			return fn(query, g)
 		}
 	}
-	return true
+	return false
 }
 
-func (idx indexRoot) everyMatch(query uint64, fn func(key uint64, idx indexMid) bool) bool {
+func (idx indexRoot) someMatch(query uint64, fn func(key uint64, idx indexMid) bool) bool {
 	// Either loop over all elements, or over just one selected element.
 	if query == 0 {
 		// All elements.
 		for key, i := range idx {
-			if !fn(key, i) {
-				return false // break
+			if fn(key, i) {
+				return true // break
 			}
 		}
 	} else {
@@ -551,16 +551,16 @@ func (idx indexRoot) everyMatch(query uint64, fn func(key uint64, idx indexMid) 
 			return fn(query, i)
 		}
 	}
-	return true
+	return false
 }
 
-func (idx indexMid) everyMatch(query uint64, fn func(key uint64, idx indexLeaf) bool) bool {
+func (idx indexMid) someMatch(query uint64, fn func(key uint64, idx indexLeaf) bool) bool {
 	// Either loop over all elements, or over just one selected element.
 	if query == 0 {
 		// All elements.
 		for key, i := range idx {
-			if !fn(key, i) {
-				return false // break
+			if fn(key, i) {
+				return true // break
 			}
 		}
 	} else {
@@ -570,16 +570,16 @@ func (idx indexMid) everyMatch(query uint64, fn func(key uint64, idx indexLeaf) 
 			return fn(query, i)
 		}
 	}
-	return true
+	return false
 }
 
-func (idx indexLeaf) everyMatch(query uint64, fn func(key uint64) bool) bool {
+func (idx indexLeaf) someMatch(query uint64, fn func(key uint64) bool) bool {
 	// Either loop over all elements, or over just one selected element.
 	if query == 0 {
 		// All elements.
 		for key, _ := range idx {
-			if !fn(key) {
-				return false // break
+			if fn(key) {
+				return true // break
 			}
 		}
 	} else {
@@ -589,36 +589,36 @@ func (idx indexLeaf) everyMatch(query uint64, fn func(key uint64) bool) bool {
 			return fn(query)
 		}
 	}
-	return true
+	return false
 }
 
 // Lazy helpers, for less error prone / more readable code elsewhere.
 
 func (gm graphMap) forEachMatch(query string, fn func(key string, g *indexedGraph)) {
-	gm.everyMatch(query, func(key string, g *indexedGraph) bool {
+	gm.someMatch(query, func(key string, g *indexedGraph) bool {
 		fn(key, g)
-		return true
+		return false
 	})
 }
 
 func (idx indexRoot) forEachMatch(query uint64, fn func(key uint64, idx indexMid)) {
-	idx.everyMatch(query, func(key uint64, i indexMid) bool {
+	idx.someMatch(query, func(key uint64, i indexMid) bool {
 		fn(key, i)
-		return true
+		return false
 	})
 }
 
 func (idx indexMid) forEachMatch(query uint64, fn func(key uint64, idx indexLeaf)) {
-	idx.everyMatch(query, func(key uint64, i indexLeaf) bool {
+	idx.someMatch(query, func(key uint64, i indexLeaf) bool {
 		fn(key, i)
-		return true
+		return false
 	})
 }
 
 func (idx indexLeaf) forEachMatch(query uint64, fn func(key uint64)) {
-	idx.everyMatch(query, func(key uint64) bool {
+	idx.someMatch(query, func(key uint64) bool {
 		fn(key)
-		return true
+		return false
 	})
 }
 
@@ -690,7 +690,7 @@ func (s *QuadStore) ForSubjects(predicate, object, graph string, fn StringCallba
 		}
 	}
 
-	graphFindSubjects := func(g *indexedGraph) {
+	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 		// We want to list all subjects.
 		// The three index choices are: SPO POS OSP
 
@@ -715,10 +715,6 @@ func (s *QuadStore) ForSubjects(predicate, object, graph string, fn StringCallba
 				loopIndex0(g.spoIndex, collectResultsFn)
 			}
 		}
-	}
-
-	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
-		graphFindSubjects(g)
 	})
 }
 
@@ -762,7 +758,7 @@ func (s *QuadStore) ForPredicates(subject, object, graph string, fn StringCallba
 		}
 	}
 
-	graphFindPredicates := func(g *indexedGraph) {
+	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 		// We want to list all predicates.
 		// The three index choices are: SPO POS OSP
 
@@ -787,10 +783,6 @@ func (s *QuadStore) ForPredicates(subject, object, graph string, fn StringCallba
 				loopIndex0(g.posIndex, collectResultsFn)
 			}
 		}
-	}
-
-	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
-		graphFindPredicates(g)
 	})
 }
 
@@ -834,7 +826,7 @@ func (s *QuadStore) ForObjects(subject, predicate, graph string, fn StringCallba
 		}
 	}
 
-	graphFindObjects := func(g *indexedGraph) {
+	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 		// We want to list all objects.
 		// The three index choices are: SPO POS OSP
 
@@ -859,10 +851,6 @@ func (s *QuadStore) ForObjects(subject, predicate, graph string, fn StringCallba
 				loopIndex0(g.ospIndex, collectResultsFn)
 			}
 		}
-	}
-
-	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
-		graphFindObjects(g)
 	})
 }
 
