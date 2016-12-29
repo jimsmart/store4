@@ -416,15 +416,25 @@ func (s *QuadStore) Every(fn QuadTestFn) bool {
 // EveryWith returns false. Otherwise, if the callback returns
 // true for all quads, then EveryWith returns true.
 //
-// Acting like the 'for all' quantifier in maths, it should
-// be noted that EveryWith returns true for an empty store.
-// By extension, if the given parameters cause the iteration
-// set to be empty, then EveryWith also returns true.
+// If no quads match the given terms, or the store is empty,
+// then EveryWith returns false. Note that this differs from
+// the interpretation of 'every' in some other languages,
+// which may return true for an empty iteration set / store.
 func (s *QuadStore) EveryWith(subject, predicate, object, graph string, fn QuadTestFn) bool {
+	some := false
 	everyFn := func(s, p, o, g string) bool {
+		some = true
 		return !fn(s, p, o, g)
 	}
-	return !s.SomeWith(subject, predicate, object, graph, everyFn)
+	every := !s.SomeWith(subject, predicate, object, graph, everyFn)
+	// Fixup the 'for-all quantifier in maths' stuff - which
+	// plainly is not useful, and violates the principal of least
+	// surprise - so now, we do not return true if the iteration
+	// set was empty.
+	if !some {
+		return false
+	}
+	return every
 }
 
 // Some tests whether some quad in the store passes the test

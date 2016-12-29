@@ -288,7 +288,7 @@ func ExampleSubjectView_Every() {
 	result = v2.Every(p1TestFn)
 	fmt.Println(result)
 
-	// Note that Every will return true
+	// Note that Every will return false
 	// for an empty SubjectView.
 	v0 := s.SubjectView("s0", "g0")
 	result = v0.Every(p1TestFn)
@@ -300,7 +300,7 @@ func ExampleSubjectView_Every() {
 	// Output:
 	// true
 	// false
-	// true
+	// false
 }
 
 func ExampleSubjectView_EveryWith() {
@@ -327,13 +327,14 @@ func ExampleSubjectView_EveryWith() {
 	result = v2.EveryWith("p2", "*", o2TestFn)
 	fmt.Println(result)
 
-	// Note that EveryWith will return true
+	// Note that EveryWith will return false
 	// for an empty SubjectView....
 	v0 := s.SubjectView("s0", "g0")
 	result = v0.EveryWith("*", "*", o2TestFn)
 	fmt.Println(result)
 	// ...or if its iteration set is empty.
 	result = v1.EveryWith("p0", "o0", o2TestFn)
+	fmt.Println(result)
 
 	// Every is often used as a breakable iterator,
 	// with its return value being ignored.
@@ -341,7 +342,8 @@ func ExampleSubjectView_EveryWith() {
 	// Output:
 	// false
 	// false
-	// true
+	// false
+	// false
 }
 
 func ExampleSubjectView_FindPredicates() {

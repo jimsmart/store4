@@ -151,7 +151,7 @@ func ExampleQuadStore_Every() {
 	result := s.Every(g1TestFn)
 	fmt.Println(result)
 
-	// Note that Every will return true
+	// Note that Every will return false
 	// for an empty store.
 	s0 := store4.NewQuadStore()
 	result = s0.Every(g1TestFn)
@@ -162,7 +162,7 @@ func ExampleQuadStore_Every() {
 
 	// Output:
 	// true
-	// true
+	// false
 }
 
 func ExampleQuadStore_EveryWith() {
@@ -184,7 +184,7 @@ func ExampleQuadStore_EveryWith() {
 	result := s.EveryWith("s1", "*", "*", "*", g1TestFn)
 	fmt.Println(result)
 
-	// Note that EveryWith will return true
+	// Note that EveryWith will return false
 	// for an empty store...
 	s0 := store4.NewQuadStore()
 	result = s0.EveryWith("*", "*", "*", "*", g1TestFn)
@@ -198,8 +198,8 @@ func ExampleQuadStore_EveryWith() {
 
 	// Output:
 	// true
-	// true
-	// true
+	// false
+	// false
 }
 
 func ExampleQuadStore_FindGraphs() {

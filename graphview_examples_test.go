@@ -216,7 +216,7 @@ func ExampleGraphView_Every() {
 	result = g2.Every(s1TestFn)
 	fmt.Println(result)
 
-	// Note that Every will return true
+	// Note that Every will return false
 	// for an empty graph.
 	g0 := store4.NewGraph()
 	result = g0.Every(s1TestFn)
@@ -228,7 +228,7 @@ func ExampleGraphView_Every() {
 	// Output:
 	// true
 	// false
-	// true
+	// false
 }
 
 func ExampleGraphView_EveryWith() {
@@ -254,7 +254,7 @@ func ExampleGraphView_EveryWith() {
 	result := g1.EveryWith("s2", "*", "*", o1TestFn)
 	fmt.Println(result)
 
-	// Note that EveryWith will return true
+	// Note that EveryWith will return false
 	// for an empty graph...
 	g0 := store4.NewGraph()
 	result = g0.EveryWith("*", "*", "*", o1TestFn)
@@ -268,8 +268,8 @@ func ExampleGraphView_EveryWith() {
 
 	// Output:
 	// true
-	// true
-	// true
+	// false
+	// false
 }
 
 func ExampleGraphView_FindSubjects() {

@@ -1549,11 +1549,11 @@ var _ = Describe("QuadStore", func() {
 
 	Describe("Every", func() {
 
-		It("should return true when the store is empty", func() {
+		It("should return false when the store is empty", func() {
 			store := NewQuadStore()
 			Expect(store.Size()).To(BeZero())
-			Expect(store.Every(alwaysTrueFn)).To(BeTrue())
-			Expect(store.Every(alwaysFalseFn)).To(BeTrue())
+			Expect(store.Every(alwaysTrueFn)).To(BeFalse())
+			Expect(store.Every(alwaysFalseFn)).To(BeFalse())
 		})
 
 		Context("with a store initialised with 5 items", func() {
@@ -1594,34 +1594,34 @@ var _ = Describe("QuadStore", func() {
 		Context("with an empty store", func() {
 			store := NewQuadStore()
 
-			It("should return true when called with all wildcards", func() {
+			It("should return false when called with all wildcards", func() {
 				Expect(store.Size()).To(BeZero())
-				Expect(store.EveryWith("*", "*", "*", "*", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("*", "*", "*", "*", alwaysFalseFn)).To(BeTrue())
+				Expect(store.EveryWith("*", "*", "*", "*", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("*", "*", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
 
-			It("should return true when called with a non-existing subject", func() {
+			It("should return false when called with a non-existing subject", func() {
 				Expect(store.Size()).To(BeZero())
-				Expect(store.EveryWith("s0", "*", "*", "*", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("s0", "*", "*", "*", alwaysFalseFn)).To(BeTrue())
+				Expect(store.EveryWith("s0", "*", "*", "*", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("s0", "*", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
 
-			It("should return true when called with a non-existing predicate", func() {
+			It("should return false when called with a non-existing predicate", func() {
 				Expect(store.Size()).To(BeZero())
-				Expect(store.EveryWith("*", "p0", "*", "*", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("*", "p0", "*", "*", alwaysFalseFn)).To(BeTrue())
+				Expect(store.EveryWith("*", "p0", "*", "*", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("*", "p0", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
 
-			It("should return true when called with a non-existing object", func() {
+			It("should return false when called with a non-existing object", func() {
 				Expect(store.Size()).To(BeZero())
-				Expect(store.EveryWith("*", "*", "o0", "*", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("*", "*", "o0", "*", alwaysFalseFn)).To(BeTrue())
+				Expect(store.EveryWith("*", "*", "o0", "*", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("*", "*", "o0", "*", alwaysFalseFn)).To(BeFalse())
 			})
 
-			It("should return true when called with a non-existing graph", func() {
+			It("should return false when called with a non-existing graph", func() {
 				Expect(store.Size()).To(BeZero())
-				Expect(store.EveryWith("*", "*", "*", "c0", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("*", "*", "*", "c0", alwaysFalseFn)).To(BeTrue())
+				Expect(store.EveryWith("*", "*", "*", "c0", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("*", "*", "*", "c0", alwaysFalseFn)).To(BeFalse())
 			})
 		})
 
@@ -1656,44 +1656,44 @@ var _ = Describe("QuadStore", func() {
 				Expect(callCount).To(Equal(2))
 			})
 
-			It("should return true when called with a non-existing subject", func() {
-				Expect(store.EveryWith("s0", "*", "*", "*", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("s0", "*", "*", "*", alwaysFalseFn)).To(BeTrue())
+			It("should return false when called with a non-existing subject", func() {
+				Expect(store.EveryWith("s0", "*", "*", "*", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("s0", "*", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
 
-			It("should return true when called with a non-existing subject that exists elsewhere", func() {
-				Expect(store.EveryWith("p1", "*", "*", "*", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("p1", "*", "*", "*", alwaysFalseFn)).To(BeTrue())
+			It("should return false when called with a non-existing subject that exists elsewhere", func() {
+				Expect(store.EveryWith("p1", "*", "*", "*", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("p1", "*", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
 
 			It("should return false when called with a non-existing predicate", func() {
-				Expect(store.EveryWith("*", "p0", "*", "*", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("*", "p0", "*", "*", alwaysFalseFn)).To(BeTrue())
+				Expect(store.EveryWith("*", "p0", "*", "*", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("*", "p0", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
 
 			It("should return false when called with a non-existing predicate that exists elsewhere", func() {
-				Expect(store.EveryWith("*", "s1", "*", "*", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("*", "s1", "*", "*", alwaysFalseFn)).To(BeTrue())
+				Expect(store.EveryWith("*", "s1", "*", "*", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("*", "s1", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
 
 			It("should return false when called with a non-existing object", func() {
-				Expect(store.EveryWith("*", "*", "o0", "*", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("*", "*", "o0", "*", alwaysFalseFn)).To(BeTrue())
+				Expect(store.EveryWith("*", "*", "o0", "*", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("*", "*", "o0", "*", alwaysFalseFn)).To(BeFalse())
 			})
 
 			It("should return false when called with a non-existing object that exists elsewhere", func() {
-				Expect(store.EveryWith("*", "*", "p1", "*", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("*", "*", "p1", "*", alwaysFalseFn)).To(BeTrue())
+				Expect(store.EveryWith("*", "*", "p1", "*", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("*", "*", "p1", "*", alwaysFalseFn)).To(BeFalse())
 			})
 
 			It("should return false when called with a non-existing graph", func() {
-				Expect(store.EveryWith("*", "*", "*", "c0", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("*", "*", "*", "c0", alwaysTrueFn)).To(BeTrue())
+				Expect(store.EveryWith("*", "*", "*", "c0", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("*", "*", "*", "c0", alwaysTrueFn)).To(BeFalse())
 			})
 
 			It("should return false when called with a non-existing graph that exists elsewhere", func() {
-				Expect(store.EveryWith("*", "*", "*", "s1", alwaysTrueFn)).To(BeTrue())
-				Expect(store.EveryWith("*", "*", "*", "s1", alwaysTrueFn)).To(BeTrue())
+				Expect(store.EveryWith("*", "*", "*", "s1", alwaysTrueFn)).To(BeFalse())
+				Expect(store.EveryWith("*", "*", "*", "s1", alwaysTrueFn)).To(BeFalse())
 			})
 		})
 	})
