@@ -403,7 +403,7 @@ func (s *QuadStore) ForEachWith(subject, predicate, object, graph string, fn Qua
 // If no quads match the given terms, or the store is empty,
 // then Every returns false. Note that this differs from
 // the interpretation of 'every' in some other languages,
-// which may return true for an empty iteration set / store.
+// which may return true for an empty iteration set.
 func (s *QuadStore) Every(fn QuadTestFn) bool {
 	return s.EveryWith("*", "*", "*", "*", fn)
 }
@@ -421,7 +421,7 @@ func (s *QuadStore) Every(fn QuadTestFn) bool {
 // If no quads match the given terms, or the store is empty,
 // then EveryWith returns false. Note that this differs from
 // the interpretation of 'every' in some other languages,
-// which may return true for an empty iteration set / store.
+// which may return true for an empty iteration set.
 func (s *QuadStore) EveryWith(subject, predicate, object, graph string, fn QuadTestFn) bool {
 	some := false
 	everyFn := func(s, p, o, g string) bool {
