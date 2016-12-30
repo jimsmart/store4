@@ -10,11 +10,12 @@ import (
 	"github.com/jimsmart/store4"
 )
 
-// What are we testing here?
-//
-// For starters: we should be benching time to add n quads when store already has x quads in it.
+// $ go test -run=XXX -bench=.
+
+// What are we timing here? I don't think much of this has any meaning.
 
 var storeFind *store4.QuadStore
+var lastDim int
 
 // func init() {
 // 	storeFind = newStoreForFind()
@@ -100,7 +101,7 @@ func readMemStats() *runtime.MemStats {
 }
 
 func createStoreForFind(dim int) *store4.QuadStore {
-	if storeFind != nil {
+	if storeFind != nil && lastDim == dim {
 		return storeFind
 	}
 
@@ -108,6 +109,7 @@ func createStoreForFind(dim int) *store4.QuadStore {
 
 	storeFind = newStoreWithDim(dim)
 	log.Println("QuadStore.Size", storeFind.Size())
+	lastDim = dim
 
 	after := readMemStats()
 	logMemStatsDifference(before, after)
