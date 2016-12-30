@@ -26,6 +26,23 @@ type QuadTestFn func(s, p, o, g string) bool
 type StringCallbackFn func(s string)
 
 // QuadStore is an in-memory string-based quad store.
+//
+// If provided, the OnAdd callback will be called once for every quad
+// added to the store with the Add method. It is called once per quad,
+// after each quad has succesfully been added to the store. It is not
+// called if the added quad already existed in the store. Note that
+// when the callback is invoked, the store size will already have been
+// incremented, and all internal indexes will be in a
+// consistent state — so it is safe to add further quads (or remove
+// quads) from within the callback, should one wish to do so.
+//
+// Likewise: if provided, the OnRemove callback will be called once for every quad
+// removed from the store with the Remove method. It is called once
+// per quad, after each quad has been successfully removed from the store.
+// Note that when the callback is invoked, the store size will already
+// have been decremented, and all internal indexes will be
+// in a consistent state — so it is safe to remove further quads (or add
+// quads) from within the callback, should one wish to do so.
 type QuadStore struct {
 	// OnAdd is called whenever a new quad is added to the store
 	// (post-addition).

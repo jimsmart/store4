@@ -37,6 +37,10 @@
 // For cancellable iterators see Some and Every, and
 // their filtering counterparts SomeWith and EveryWith.
 //
+// QuadStore also features callback hooks for both OnAdd and OnRemove,
+// which can be used to integrate external features such as logging or
+// inference.
+//
 // GraphView API
 //
 // The GraphView API is based around subject-predicate-object triples.
