@@ -728,20 +728,20 @@ func (s *QuadStore) ForSubjects(predicate, object, graph string, fn StringCallba
 			if oid != 0 {
 				// If predicate and object are given, the posIndex is best.
 				// Lookup p, lookup o, loop s.
-				lookupIndex0LookupIndex1LoopIndex2(g.posIndex, pid, oid, collectResultsFn)
+				index2KeysGivenKey0And1(g.posIndex, pid, oid, collectResultsFn)
 			} else {
 				// If only predicate is given, the spoIndex is best.
 				// Loop s, lookup p.
-				loopIndex0LookupIndex1(g.spoIndex, pid, collectResultsFn)
+				index0KeysGivenKey1(g.spoIndex, pid, collectResultsFn)
 			}
 		} else {
 			if oid != 0 {
 				// If only object is given, the ospIndex is best.
 				// Lookup o, loop s.
-				lookupIndex0LoopIndex1(g.ospIndex, oid, collectResultsFn)
+				index1KeysGivenKey0(g.ospIndex, oid, collectResultsFn)
 			} else {
 				// If no params given, iterate all the subjects.
-				loopIndex0(g.spoIndex, collectResultsFn)
+				index0Keys(g.spoIndex, collectResultsFn)
 			}
 		}
 	})
@@ -796,20 +796,20 @@ func (s *QuadStore) ForPredicates(subject, object, graph string, fn StringCallba
 			if oid != 0 {
 				// If subject and object are given, the ospIndex is best.
 				// Lookup o, lookup s, loop p.
-				lookupIndex0LookupIndex1LoopIndex2(g.ospIndex, oid, sid, collectResultsFn)
+				index2KeysGivenKey0And1(g.ospIndex, oid, sid, collectResultsFn)
 			} else {
 				// If only subject is given, the spoIndex is best.
 				// Lookup s, loop p.
-				lookupIndex0LoopIndex1(g.spoIndex, sid, collectResultsFn)
+				index1KeysGivenKey0(g.spoIndex, sid, collectResultsFn)
 			}
 		} else {
 			if oid != 0 {
 				// If only object is given, the posIndex is best.
 				// Loop p, lookup o.
-				loopIndex0LookupIndex1(g.posIndex, oid, collectResultsFn)
+				index0KeysGivenKey1(g.posIndex, oid, collectResultsFn)
 			} else {
 				// If no params given, iterate all the predicates.
-				loopIndex0(g.posIndex, collectResultsFn)
+				index0Keys(g.posIndex, collectResultsFn)
 			}
 		}
 	})
@@ -864,28 +864,26 @@ func (s *QuadStore) ForObjects(subject, predicate, graph string, fn StringCallba
 			if pid != 0 {
 				// If subject and predicate are given, the spoIndex is best.
 				// Lookup s, lookup p, loop o.
-				lookupIndex0LookupIndex1LoopIndex2(g.spoIndex, sid, pid, collectResultsFn)
+				index2KeysGivenKey0And1(g.spoIndex, sid, pid, collectResultsFn)
 			} else {
 				// If only subject is given, the ospIndex is best.
 				// Loop o, lookup s.
-				loopIndex0LookupIndex1(g.ospIndex, sid, collectResultsFn)
+				index0KeysGivenKey1(g.ospIndex, sid, collectResultsFn)
 			}
 		} else {
 			if pid != 0 {
 				// If only predicate is given, the posIndex is best.
 				// Lookup p, loop o.
-				lookupIndex0LoopIndex1(g.posIndex, pid, collectResultsFn)
+				index1KeysGivenKey0(g.posIndex, pid, collectResultsFn)
 			} else {
 				// If no params given, iterate all the objects.
-				loopIndex0(g.ospIndex, collectResultsFn)
+				index0Keys(g.ospIndex, collectResultsFn)
 			}
 		}
 	})
 }
 
-// The names for these are terrible. :/
-
-func lookupIndex0LookupIndex1LoopIndex2(index0 indexRoot, key0, key1 uint64, fn func(key2 uint64)) {
+func index2KeysGivenKey0And1(index0 indexRoot, key0, key1 uint64, fn func(key2 uint64)) {
 	// Lookup.
 	index1, ok := index0[key0]
 	if !ok {
@@ -899,7 +897,7 @@ func lookupIndex0LookupIndex1LoopIndex2(index0 indexRoot, key0, key1 uint64, fn 
 	}
 }
 
-func lookupIndex0LoopIndex1(index0 indexRoot, key0 uint64, fn func(key1 uint64)) {
+func index1KeysGivenKey0(index0 indexRoot, key0 uint64, fn func(key1 uint64)) {
 	// Lookup.
 	index1, ok := index0[key0]
 	if !ok {
@@ -911,7 +909,7 @@ func lookupIndex0LoopIndex1(index0 indexRoot, key0 uint64, fn func(key1 uint64))
 	}
 }
 
-func loopIndex0LookupIndex1(index0 indexRoot, key1 uint64, fn func(key0 uint64)) {
+func index0KeysGivenKey1(index0 indexRoot, key1 uint64, fn func(key0 uint64)) {
 	// Loop
 	for key0, index1 := range index0 {
 		// Lookup.
@@ -922,7 +920,7 @@ func loopIndex0LookupIndex1(index0 indexRoot, key1 uint64, fn func(key0 uint64))
 	}
 }
 
-func loopIndex0(index0 indexRoot, fn func(key0 uint64)) {
+func index0Keys(index0 indexRoot, fn func(key0 uint64)) {
 	// Loop
 	for key0, _ := range index0 {
 		fn(key0)
