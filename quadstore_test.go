@@ -27,6 +27,20 @@ func alwaysFalseFn(s, p, o, g string) bool {
 	return false
 }
 
+type boxedQuad1 struct{ s, p, o, g string }
+
+func (b boxedQuad1) Subject() string   { return b.s }
+func (b boxedQuad1) Predicate() string { return b.p }
+func (b boxedQuad1) Object() string    { return b.o }
+func (b boxedQuad1) Graph() string     { return b.g }
+
+type boxedQuad2 struct{ s, p, o, g string }
+
+func (b boxedQuad2) S() string { return b.s }
+func (b boxedQuad2) P() string { return b.p }
+func (b boxedQuad2) O() string { return b.o }
+func (b boxedQuad2) G() string { return b.g }
+
 var _ = Describe("QuadStore", func() {
 
 	Describe("Creating a new QuadStore", func() {
@@ -167,6 +181,208 @@ var _ = Describe("QuadStore", func() {
 					{"s2", "p1", "o1", ""},
 					{"s1", "p2", "o3", ""},
 				}))
+			})
+		})
+
+		Context("from a quad-like struct", func() {
+			store := NewQuadStore(
+				struct {
+					Subject   string
+					Predicate string
+					Object    string
+					Graph     string
+				}{"s1", "p1", "o1", ""},
+			)
+			It("should have size 1", func() {
+				Expect(store.Size()).To(Equal(uint64(1)))
+			})
+
+			It("should contain the correct quads", func() {
+				var resultsList [][4]string
+				store.ForEach(func(s, p, o, g string) {
+					resultsList = append(resultsList, [4]string{s, p, o, g})
+				})
+				Expect(resultsList).To(ConsistOf([][4]string{
+					{"s1", "p1", "o1", ""},
+				}))
+			})
+		})
+
+		Context("from a simpler quad-like struct", func() {
+			store := NewQuadStore(
+				struct {
+					S string
+					P string
+					O string
+					G string
+				}{"s1", "p1", "o1", ""},
+			)
+			It("should have size 1", func() {
+				Expect(store.Size()).To(Equal(uint64(1)))
+			})
+
+			It("should contain the correct quads", func() {
+				var resultsList [][4]string
+				store.ForEach(func(s, p, o, g string) {
+					resultsList = append(resultsList, [4]string{s, p, o, g})
+				})
+				Expect(resultsList).To(ConsistOf([][4]string{
+					{"s1", "p1", "o1", ""},
+				}))
+			})
+		})
+
+		Context("from a triple-like struct", func() {
+			store := NewQuadStore(
+				struct {
+					Subject   string
+					Predicate string
+					Object    string
+				}{"s1", "p1", "o1"},
+			)
+			It("should have size 1", func() {
+				Expect(store.Size()).To(Equal(uint64(1)))
+			})
+
+			It("should contain the correct quads", func() {
+				var resultsList [][4]string
+				store.ForEach(func(s, p, o, g string) {
+					resultsList = append(resultsList, [4]string{s, p, o, g})
+				})
+				Expect(resultsList).To(ConsistOf([][4]string{
+					{"s1", "p1", "o1", ""},
+				}))
+			})
+		})
+
+		Context("from a simpler triple-like struct", func() {
+			store := NewQuadStore(
+				struct {
+					S string
+					P string
+					O string
+				}{"s1", "p1", "o1"},
+			)
+			It("should have size 1", func() {
+				Expect(store.Size()).To(Equal(uint64(1)))
+			})
+
+			It("should contain the correct quads", func() {
+				var resultsList [][4]string
+				store.ForEach(func(s, p, o, g string) {
+					resultsList = append(resultsList, [4]string{s, p, o, g})
+				})
+				Expect(resultsList).To(ConsistOf([][4]string{
+					{"s1", "p1", "o1", ""},
+				}))
+			})
+		})
+
+		Context("from multiple quad-like structs", func() {
+			store := NewQuadStore(
+				[]struct {
+					Subject   string
+					Predicate string
+					Object    string
+					Graph     string
+				}{
+					{"s1", "p1", "o1", ""},
+					{"s1", "p1", "o2", ""},
+					{"s1", "p2", "o2", ""},
+					{"s2", "p1", "o1", ""},
+					{"s1", "p2", "o3", ""},
+				})
+			It("should have size 5", func() {
+				Expect(store.Size()).To(Equal(uint64(5)))
+			})
+
+			It("should contain the correct quads", func() {
+				var resultsList [][4]string
+				store.ForEach(func(s, p, o, g string) {
+					resultsList = append(resultsList, [4]string{s, p, o, g})
+				})
+				Expect(resultsList).To(ConsistOf([][4]string{
+					{"s1", "p1", "o1", ""},
+					{"s1", "p1", "o2", ""},
+					{"s1", "p2", "o2", ""},
+					{"s2", "p1", "o1", ""},
+					{"s1", "p2", "o3", ""},
+				}))
+			})
+		})
+
+		Context("from a boxed-quad struct", func() {
+			store := NewQuadStore(
+				boxedQuad1{"s1", "p1", "o1", ""},
+			)
+			It("should have size 1", func() {
+				Expect(store.Size()).To(Equal(uint64(1)))
+			})
+
+			It("should contain the correct quads", func() {
+				var resultsList [][4]string
+				store.ForEach(func(s, p, o, g string) {
+					resultsList = append(resultsList, [4]string{s, p, o, g})
+				})
+				Expect(resultsList).To(ConsistOf([][4]string{
+					{"s1", "p1", "o1", ""},
+				}))
+			})
+		})
+
+		Context("from a simpler boxed-quad struct", func() {
+			store := NewQuadStore(
+				boxedQuad2{"s1", "p1", "o1", ""},
+			)
+			It("should have size 1", func() {
+				Expect(store.Size()).To(Equal(uint64(1)))
+			})
+
+			It("should contain the correct quads", func() {
+				var resultsList [][4]string
+				store.ForEach(func(s, p, o, g string) {
+					resultsList = append(resultsList, [4]string{s, p, o, g})
+				})
+				Expect(resultsList).To(ConsistOf([][4]string{
+					{"s1", "p1", "o1", ""},
+				}))
+			})
+		})
+
+		Context("from multiple boxed-quad structs", func() {
+			store := NewQuadStore(
+				[]boxedQuad1{
+					{"s1", "p1", "o1", ""},
+					{"s1", "p1", "o2", ""},
+					{"s1", "p2", "o2", ""},
+					{"s2", "p1", "o1", ""},
+					{"s1", "p2", "o3", ""},
+				})
+			It("should have size 5", func() {
+				Expect(store.Size()).To(Equal(uint64(5)))
+			})
+
+			It("should contain the correct quads", func() {
+				var resultsList [][4]string
+				store.ForEach(func(s, p, o, g string) {
+					resultsList = append(resultsList, [4]string{s, p, o, g})
+				})
+				Expect(resultsList).To(ConsistOf([][4]string{
+					{"s1", "p1", "o1", ""},
+					{"s1", "p1", "o2", ""},
+					{"s1", "p2", "o2", ""},
+					{"s2", "p1", "o1", ""},
+					{"s1", "p2", "o3", ""},
+				}))
+			})
+		})
+
+		Context("from an empty slice of structs", func() {
+			store := NewQuadStore(
+				[]boxedQuad2{},
+			)
+			It("should have size 0", func() {
+				Expect(store.Size()).To(Equal(uint64(0)))
 			})
 		})
 

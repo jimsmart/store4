@@ -3,6 +3,7 @@ package store4
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"sort"
 )
 
@@ -103,6 +104,43 @@ type indexLeaf map[uint64]struct{}
 //  [][3]string
 //  [4]string
 //  [3]string
+//
+// Alternatively, initial quads or triples may be provided
+// using a slice of structs (or a single instance of a struct)
+// having the following fields:
+//  struct {
+//      Subject   string
+//      Predicate string
+//      Object    string
+//      Graph     string // Optional.
+//  }
+// -or-
+//  struct {
+//      S string
+//      P string
+//      O string
+//      G string // Optional.
+//  }
+//
+// Furthermore, initial quads or triples can also be
+// provided using a slice of types (or a single instance of
+// a type) that implement either:
+//  interface {
+//	    Subject()   string
+//	    Predicate() string
+//	    Object()    string
+//	    Graph()     string // Optional.
+//  }
+// -or-
+//  interface {
+//      S() string
+//      P() string
+//      O() string
+//      G() string // Optional.
+//  }
+//
+// Finally, if the type of the given args is unrecognised,
+// then NewQuadStore will panic.
 func NewQuadStore(args ...interface{}) *QuadStore {
 	s := &QuadStore{
 		graphs: make(map[string]*indexedGraph),
@@ -118,7 +156,9 @@ func NewQuadStore(args ...interface{}) *QuadStore {
 	for _, arg := range args {
 		switch arg := arg.(type) {
 		default:
-			panic(fmt.Sprintf("unexpected type %T\n", arg))
+			if !addQuadFromInterfaces(s, arg) {
+				initWithReflection(s, arg)
+			}
 		case [4]string:
 			// Single string quad.
 			s.Add(arg[0], arg[1], arg[2], arg[3])
@@ -138,6 +178,144 @@ func NewQuadStore(args ...interface{}) *QuadStore {
 		}
 	}
 	return s
+}
+
+type tripler interface {
+	Subject() string
+	Predicate() string
+	Object() string
+}
+
+type grapher interface {
+	Graph() string
+}
+
+type simplerTripler interface {
+	S() string
+	P() string
+	O() string
+}
+
+type simplerGrapher interface {
+	G() string
+}
+
+func addQuadFromInterfaces(s *QuadStore, arg interface{}) bool {
+	gr := ""
+	if t, ok := arg.(tripler); ok {
+		if g, ok := arg.(grapher); ok {
+			gr = g.Graph()
+		}
+		s.Add(t.Subject(), t.Predicate(), t.Object(), gr)
+		return true
+	}
+	if t, ok := arg.(simplerTripler); ok {
+		if g, ok := arg.(simplerGrapher); ok {
+			gr = g.G()
+		}
+		s.Add(t.S(), t.P(), t.O(), gr)
+		return true
+	}
+	return false
+}
+
+func initWithReflection(s *QuadStore, arg interface{}) {
+	m := make([]int, 4)
+	t := reflect.TypeOf(arg)
+	k := t.Kind()
+	switch k {
+	case reflect.Struct:
+		// Single quad-like or triple-like struct.
+		if findMappings(t, m) {
+			s.Add(quadFromStruct(arg, m))
+			return
+		}
+	case reflect.Slice:
+		// Slice of quad-like or triple-like structs
+		// or, alternatively, structs implementing a
+		// compatible interface.
+		val := reflect.ValueOf(arg)
+		length := val.Len()
+		if length == 0 {
+			return
+		}
+		el := val.Index(0)
+		iface := el.Interface()
+		if findMappings(el.Type(), m) {
+			s.Add(quadFromStruct(iface, m))
+			for i := 1; i < length; i++ {
+				el = val.Index(i)
+				iface = el.Interface()
+				s.Add(quadFromStruct(iface, m))
+			}
+			return
+		}
+		if addQuadFromInterfaces(s, iface) {
+			for i := 1; i < length; i++ {
+				el = val.Index(i)
+				iface = el.Interface()
+				addQuadFromInterfaces(s, iface)
+			}
+			return
+		}
+	}
+	panic(fmt.Sprintf("unexpected type %T\n", arg))
+}
+
+func quadFromStruct(arg interface{}, m []int) (s, p, o, g string) {
+	// Use the mappings to pull out the required values.
+	val := reflect.ValueOf(arg)
+	s = val.Field(m[0]).String()
+	p = val.Field(m[1]).String()
+	o = val.Field(m[2]).String()
+	if m[3] != -1 {
+		g = val.Field(m[3]).String()
+	}
+	return
+}
+
+func findMappings(t reflect.Type, m []int) bool {
+	// Try to build a set of mappings:
+	// from quad slot to field index.
+	// m := [4]int{}
+
+	matchFields := func(fields map[string]int) bool {
+		m[0], m[1], m[2], m[3] = -1, -1, -1, -1
+		// Look for fields with the same names as in our map.
+		for i := 0; i < t.NumField(); i++ {
+			vField := t.Field(i)
+			name := vField.Name
+			idx, ok := fields[name]
+			if ok && vField.Type.Kind() == reflect.String {
+				m[idx] = i
+			}
+		}
+		// Check that all the fields exist.
+		// Graph name - m[3] - is optional.
+		return m[0] != -1 && m[1] != -1 && m[2] != -1
+	}
+
+	f1 := map[string]int{
+		"Subject":   0,
+		"Predicate": 1,
+		"Object":    2,
+		"Graph":     3,
+	}
+
+	f2 := map[string]int{
+		"S": 0,
+		"P": 1,
+		"O": 2,
+		"G": 3,
+	}
+
+	if !matchFields(f1) {
+		if !matchFields(f2) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Size returns the total count of quads in the store.
