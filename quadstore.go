@@ -327,6 +327,87 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) uint64 {
 	return count
 }
 
+// Inversion of control - the index buckets themselves
+// take care of any wilcards and call back as they need to.
+
+// Lazy helper, for less error prone / more readable code elsewhere.
+func (gm graphMap) forEachMatch(query string, fn func(key string, g *indexedGraph)) {
+	gm.someMatch(query, func(key string, g *indexedGraph) bool {
+		fn(key, g)
+		return false
+	})
+}
+
+func (gm graphMap) someMatch(query string, fn func(key string, g *indexedGraph) bool) bool {
+	// Either loop over all graphs, or over just one selected graph.
+	if query == "*" {
+		// All graphs.
+		for key, g := range gm {
+			if fn(key, g) {
+				return true
+			}
+		}
+	} else {
+		// Single graph - if it exists.
+		g, ok := gm[query]
+		if ok {
+			return fn(query, g)
+		}
+	}
+	return false
+}
+
+// These three functions all operate identically,
+// but differ because of the specific types at each layer.
+
+func (idx indexRoot) forEachMatch(query uint64, fn func(key uint64, idx indexMid)) {
+	// Either loop over all elements, or over just one selected element.
+	if query == 0 {
+		// All elements.
+		for key, i := range idx {
+			fn(key, i)
+		}
+	} else {
+		// Single element - if it exists.
+		i, ok := idx[query]
+		if ok {
+			fn(query, i)
+		}
+	}
+}
+
+func (idx indexMid) forEachMatch(query uint64, fn func(key uint64, idx indexLeaf)) {
+	// Either loop over all elements, or over just one selected element.
+	if query == 0 {
+		// All elements.
+		for key, i := range idx {
+			fn(key, i)
+		}
+	} else {
+		// Single element - if it exists.
+		i, ok := idx[query]
+		if ok {
+			fn(query, i)
+		}
+	}
+}
+
+func (idx indexLeaf) forEachMatch(query uint64, fn func(key uint64)) {
+	// Either loop over all elements, or over just one selected element.
+	if query == 0 {
+		// All elements.
+		for key, _ := range idx {
+			fn(key)
+		}
+	} else {
+		// Single element - if it exists.
+		_, ok := idx[query]
+		if ok {
+			fn(query)
+		}
+	}
+}
+
 // Count returns a count of quads in the store that match the given pattern.
 //
 // Passing "*" (an asterisk) for any parameter acts as a
@@ -469,6 +550,13 @@ func (s *QuadStore) Some(fn QuadTestFn) bool {
 	return s.SomeWith("*", "*", "*", "*", fn)
 }
 
+const (
+	_s = iota
+	_p
+	_o
+	_g
+)
+
 // SomeWith tests whether some quad matching the given pattern
 // passes the test implemented by the given function.
 //
@@ -480,7 +568,7 @@ func (s *QuadStore) Some(fn QuadTestFn) bool {
 // false for all quads, then SomeWith returns false.
 func (s *QuadStore) SomeWith(subject, predicate, object, graph string, fn QuadTestFn) bool {
 	termToID := s.termToID
-	idToTerm := s.idToTerm
+	// idToTerm := s.idToTerm
 	graphs := s.graphs
 	// Find internal identifiers for terms.
 	sid, sok := termToID[subject]
@@ -491,164 +579,181 @@ func (s *QuadStore) SomeWith(subject, predicate, object, graph string, fn QuadTe
 		return false
 	}
 
-	var q [4]string // spog quad
-
-	// Inlined, so it has easy access to term map and q results.
-	indexSomeWith := func(index0 indexRoot, key0, key1, key2 uint64, idx0, idx1, idx2 int) bool {
-		return index0.someMatch(key0, func(key0 uint64, index1 indexMid) bool {
-			q[idx0] = idToTerm(key0)
-			return index1.someMatch(key1, func(key1 uint64, index2 indexLeaf) bool {
-				q[idx1] = idToTerm(key1)
-				return index2.someMatch(key2, func(key2 uint64) bool {
-					q[idx2] = idToTerm(key2)
-					return fn(q[0], q[1], q[2], q[3])
-				})
-			})
-		})
-	}
+	// flags := 0
+	// if sid != 0 {
+	// 	flags |= 4
+	// }
+	// if pid != 0 {
+	// 	flags |= 2
+	// }
+	// if oid != 0 {
+	// 	flags |= 1
+	// }
 
 	return graphs.someMatch(graph, func(graph string, g *indexedGraph) bool {
-		q[3] = graph
+
+		// fns := [8]func() bool{
+		// 	// s = z : p = z : o = z
+		// 	func() bool { return indexSomeGivenNoKeys(g.spoIndex, _s, _p, _o, graph, s, fn) },
+		// 	// s = z : p = z : o = nz
+		// 	func() bool { return indexSomeGivenKey0(g.ospIndex, oid, _o, _s, _p, graph, s, fn) },
+		// 	// s = z : p = nz : o = z
+		// 	func() bool { return indexSomeGivenKey0(g.posIndex, pid, _p, _o, _s, graph, s, fn) },
+		// 	// s = z : p = nz : o = nz
+		// 	func() bool { return indexSomeGivenKey0And1(g.posIndex, pid, oid, _p, _o, _s, graph, s, fn) },
+		// 	// s = nz : p = z : o = z
+		// 	func() bool { return indexSomeGivenKey0(g.spoIndex, sid, _s, _p, _o, graph, s, fn) },
+		// 	// s = nz : p = z : o = nz
+		// 	func() bool { return indexSomeGivenKey0And1(g.ospIndex, oid, sid, _o, _s, _p, graph, s, fn) },
+		// 	// s = nz : p = nz : o = z
+		// 	func() bool { return indexSomeGivenKey0And1(g.spoIndex, sid, pid, _s, _p, _o, graph, s, fn) },
+		// 	// s = nz : p = nz : o = nz
+		// 	func() bool { return indexSomeGivenAllKeys(g.spoIndex, sid, pid, oid, _s, _p, _o, graph, s, fn) },
+		// }
+		// return fns[flags]()
+
 		// Choose the optimal index, based on which fields are wildcards.
 		if sid != 0 {
-			if oid != 0 {
-				// If subject and object are given, the ospIndex will be fastest.
-				return indexSomeWith(g.ospIndex, oid, sid, pid, 2, 0, 1)
+			if pid != 0 {
+				if oid != 0 {
+					// s = nz : p = nz : o = nz
+					return indexSomeGivenAllKeys(g.spoIndex, sid, pid, oid, _s, _p, _o, graph, s, fn)
+				} else {
+					// s = nz : p = nz : o = z
+					return indexSomeGivenKey0And1(g.spoIndex, sid, pid, _s, _p, _o, graph, s, fn)
+				}
 			} else {
-				// If subject and possibly predicate are given, the spoIndex will be fastest.
-				return indexSomeWith(g.spoIndex, sid, pid, oid, 0, 1, 2)
+				if oid != 0 {
+					// s = nz : p = z : o = nz
+					return indexSomeGivenKey0And1(g.ospIndex, oid, sid, _o, _s, _p, graph, s, fn)
+				} else {
+					// s = nz : p = z : o = z
+					return indexSomeGivenKey0(g.spoIndex, sid, _s, _p, _o, graph, s, fn)
+				}
 			}
 		} else {
 			if pid != 0 {
-				// If only predicate and possibly object are given, the posIndex will be fastest.
-				return indexSomeWith(g.posIndex, pid, oid, sid, 1, 2, 0)
-			} else if oid != 0 {
-				// If only object is given, the ospIndex will be fastest.
-				return indexSomeWith(g.ospIndex, oid, sid, pid, 2, 0, 1)
+				if oid != 0 {
+					// s = z : p = nz : o = nz
+					return indexSomeGivenKey0And1(g.posIndex, pid, oid, _p, _o, _s, graph, s, fn)
+				} else {
+					// s = z : p = nz : o = z
+					return indexSomeGivenKey0(g.posIndex, pid, _p, _o, _s, graph, s, fn)
+				}
 			} else {
-				// If no params given, iterate subject and predicates first.
-				return indexSomeWith(g.spoIndex, sid, pid, oid, 0, 1, 2)
+				if oid != 0 {
+					// s = z : p = z : o = nz
+					return indexSomeGivenKey0(g.ospIndex, oid, _o, _s, _p, graph, s, fn)
+				} else {
+					// s = z : p = z : o = z
+					return indexSomeGivenNoKeys(g.spoIndex, _s, _p, _o, graph, s, fn)
+				}
 			}
-			// The magic numbers (slot numbers) above should really be properties of the index itself.
-			//
-			// In an ideal world, the decision as to which index to use should be function
-			// that looks at given params and what indexes are present - then it would be possible
-			// to add or remove indexes.
 		}
+
+		// The magic numbers (_slot numbers) above should really be properties of the index itself.
+		//
+		// In an ideal world, the decision as to which index to use should be function
+		// that looks at given params and what indexes are present - then it would be possible
+		// to add or remove indexes.
 	})
 }
 
-// Inversion of control - the index buckets themselves
-// take care of any wilcards and call back as they need to.
+func indexSomeGivenNoKeys(index0 indexRoot, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {
+	idToTerm := s.idToTerm
+	var q [4]string // spog quad
+	q[3] = g
+	// Loop.
+	for key0, index1 := range index0 {
+		q[idx0] = idToTerm(key0)
+		// Loop.
+		for key1, index2 := range index1 {
+			q[idx1] = idToTerm(key1)
+			// Loop.
+			for key2, _ := range index2 {
+				q[idx2] = idToTerm(key2)
+				if fn(q[0], q[1], q[2], q[3]) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
 
-// These four functions all operate identically,
-// but differ because of the specific types at each layer.
-
-func (gm graphMap) someMatch(query string, fn func(key string, g *indexedGraph) bool) bool {
-	// Either loop over all graphs, or over just one selected graph.
-	if query == "*" {
-		// All graphs.
-		for key, g := range gm {
-			if fn(key, g) {
-				// break
+func indexSomeGivenKey0(index0 indexRoot, key0 uint64, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {
+	idToTerm := s.idToTerm
+	var q [4]string // spog quad
+	q[3] = g
+	// Lookup.
+	index1, ok := index0[key0]
+	if !ok {
+		return false
+	}
+	q[idx0] = idToTerm(key0)
+	// Loop.
+	for key1, index2 := range index1 {
+		q[idx1] = idToTerm(key1)
+		// Loop.
+		for key2, _ := range index2 {
+			q[idx2] = idToTerm(key2)
+			if fn(q[0], q[1], q[2], q[3]) {
 				return true
 			}
 		}
-	} else {
-		// Single graph - if it exists.
-		g, ok := gm[query]
-		if ok {
-			return fn(query, g)
+	}
+	return false
+}
+
+func indexSomeGivenKey0And1(index0 indexRoot, key0, key1 uint64, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {
+	idToTerm := s.idToTerm
+	var q [4]string // spog quad
+	q[3] = g
+	// Lookup.
+	index1, ok := index0[key0]
+	if !ok {
+		return false
+	}
+	q[idx0] = idToTerm(key0)
+	// Lookup.
+	index2, ok := index1[key1]
+	if !ok {
+		return false
+	}
+	q[idx1] = idToTerm(key1)
+	// Loop.
+	for key2, _ := range index2 {
+		q[idx2] = idToTerm(key2)
+		if fn(q[0], q[1], q[2], q[3]) {
+			return true
 		}
 	}
 	return false
 }
 
-func (idx indexRoot) someMatch(query uint64, fn func(key uint64, idx indexMid) bool) bool {
-	// Either loop over all elements, or over just one selected element.
-	if query == 0 {
-		// All elements.
-		for key, i := range idx {
-			if fn(key, i) {
-				return true // break
-			}
-		}
-	} else {
-		// Single element - if it exists.
-		i, ok := idx[query]
-		if ok {
-			return fn(query, i)
-		}
+func indexSomeGivenAllKeys(index0 indexRoot, key0, key1, key2 uint64, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {
+	idToTerm := s.idToTerm
+	var q [4]string // spog quad
+	q[3] = g
+	// Lookup.
+	index1, ok := index0[key0]
+	if !ok {
+		return false
 	}
-	return false
-}
-
-func (idx indexMid) someMatch(query uint64, fn func(key uint64, idx indexLeaf) bool) bool {
-	// Either loop over all elements, or over just one selected element.
-	if query == 0 {
-		// All elements.
-		for key, i := range idx {
-			if fn(key, i) {
-				return true // break
-			}
-		}
-	} else {
-		// Single element - if it exists.
-		i, ok := idx[query]
-		if ok {
-			return fn(query, i)
-		}
+	q[idx0] = idToTerm(key0)
+	// Lookup.
+	index2, ok := index1[key1]
+	if !ok {
+		return false
 	}
-	return false
-}
-
-func (idx indexLeaf) someMatch(query uint64, fn func(key uint64) bool) bool {
-	// Either loop over all elements, or over just one selected element.
-	if query == 0 {
-		// All elements.
-		for key, _ := range idx {
-			if fn(key) {
-				return true // break
-			}
-		}
-	} else {
-		// Single element - if it exists.
-		_, ok := idx[query]
-		if ok {
-			return fn(query)
-		}
+	q[idx1] = idToTerm(key1)
+	// Lookup.
+	_, ok = index2[key2]
+	if !ok {
+		return false
 	}
-	return false
-}
-
-// Lazy helpers, for less error prone / more readable code elsewhere.
-
-func (gm graphMap) forEachMatch(query string, fn func(key string, g *indexedGraph)) {
-	gm.someMatch(query, func(key string, g *indexedGraph) bool {
-		fn(key, g)
-		return false
-	})
-}
-
-func (idx indexRoot) forEachMatch(query uint64, fn func(key uint64, idx indexMid)) {
-	idx.someMatch(query, func(key uint64, i indexMid) bool {
-		fn(key, i)
-		return false
-	})
-}
-
-func (idx indexMid) forEachMatch(query uint64, fn func(key uint64, idx indexLeaf)) {
-	idx.someMatch(query, func(key uint64, i indexLeaf) bool {
-		fn(key, i)
-		return false
-	})
-}
-
-func (idx indexLeaf) forEachMatch(query uint64, fn func(key uint64)) {
-	idx.someMatch(query, func(key uint64) bool {
-		fn(key)
-		return false
-	})
+	q[idx2] = idToTerm(key2)
+	return fn(q[0], q[1], q[2], q[3])
 }
 
 // FindGraphs returns a list of distinct graph names for all quads in the store that match the given pattern.
