@@ -72,6 +72,8 @@ func (s *QuadStore) GraphViews(subject, predicate, object string) []*GraphView {
 // Initial triples can be provided using the following types:
 //  [][3]string
 //  [3]string
+//
+// See NewQuadStore for a greater variety of initialisation options.
 func NewGraph(args ...interface{}) *GraphView {
 	g := NewQuadStore().GraphView("")
 	for _, arg := range args {
