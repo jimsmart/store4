@@ -612,6 +612,8 @@ func (s *QuadStore) SomeWith(subject, predicate, object, graph string, fn QuadTe
 		// }
 		// return fns[flags]()
 
+		// Currently, branch prediction beats table lookup - by approx 10%.
+
 		// Choose the optimal index, based on which fields are wildcards.
 		if sid != 0 {
 			if pid != 0 {
