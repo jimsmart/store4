@@ -2,7 +2,7 @@
 
 [![MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE.md) [![Build Status](https://img.shields.io/travis/jimsmart/store4/master.svg?style=flat)](https://travis-ci.org/jimsmart/store4) [![codecov](https://codecov.io/gh/jimsmart/store4/branch/master/graph/badge.svg)](https://codecov.io/gh/jimsmart/store4) [![Godoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/jimsmart/store4)
 
-Package store4 is a [Go](https://golang.org) package providing a fast in-memory string-based quad store, with graph and subject views.
+store4 is a [Go](https://golang.org) package providing a fast in-memory string-based quad store, with graph and subject views.
 
 ## Installation
 ```bash
