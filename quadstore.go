@@ -55,26 +55,8 @@ type QuadStore struct {
 	size uint64
 	// graphs hold the store's graphs.
 	graphs graphMap
-	// termToID maps terms to internal IDs.
-	termToID map[string]uint64
-	// idToTermInfo maps internal IDs to term info.
-	idToTermInfo map[uint64]*termInfo
-	// nextID holds the next term ID to issue.
-	nextID uint64
-}
 
-// idToTerm returns the term for a given ID.
-// The given ID must exist.
-// This function replaces the simple map lookup
-// after refactoring for reference counting.
-func (s *QuadStore) idToTerm(id uint64) string {
-	return s.idToTermInfo[id].term
-}
-
-// termInfo holds details for each term.
-type termInfo struct {
-	term     string // The term itself.
-	refCount uint64 // Reference count.
+	strMan *stringManager
 }
 
 // graphMap is a map holding the store's graphs, keyed by graph name.
@@ -144,14 +126,8 @@ type indexLeaf map[uint64]struct{}
 func NewQuadStore(args ...interface{}) *QuadStore {
 	s := &QuadStore{
 		graphs: make(map[string]*indexedGraph),
+		strMan: newStringManager(),
 	}
-	s.termToID = make(map[string]uint64)
-	s.idToTermInfo = make(map[uint64]*termInfo)
-	// We use "*" as a wildcard, so we give it ID 0
-	// to make things easy elsewhere.
-	s.termToID["*"] = 0
-	// Start IDs from 1.
-	s.nextID = 1
 	// Initialise store with any given data.
 	for _, arg := range args {
 		switch arg := arg.(type) {
@@ -351,9 +327,10 @@ func (s *QuadStore) Add(subject, predicate, object, graph string) bool {
 		s.graphs[graph] = g
 	}
 	// Get internal IDs for each term.
-	sid := s.getOrCreateID(subject)
-	pid := s.getOrCreateID(predicate)
-	oid := s.getOrCreateID(object)
+	getOrCreateID := s.strMan.getOrCreateID
+	sid := getOrCreateID(subject)
+	pid := getOrCreateID(predicate)
+	oid := getOrCreateID(object)
 	// Disallow wildcard terms.
 	// Optimisation: the fast path (only path) is that terms will not be
 	// the wildcard, so we avoid three extra string compares earlier in
@@ -364,9 +341,10 @@ func (s *QuadStore) Add(subject, predicate, object, graph string) bool {
 	// Add triple to all indexes.
 	if !addToIndex(g.spoIndex, sid, pid, oid) {
 		// Already exists.
-		s.releaseRef(sid)
-		s.releaseRef(pid)
-		s.releaseRef(oid)
+		releaseRef := s.strMan.releaseRef
+		releaseRef(sid)
+		releaseRef(pid)
+		releaseRef(oid)
 		return false
 	}
 	addToIndex(g.posIndex, pid, oid, sid)
@@ -401,55 +379,33 @@ func addToIndex(index0 indexRoot, key0, key1, key2 uint64) bool {
 	return !exists
 }
 
-// getOrCreateID returns an internal ID for a given term.
-// If no existing ID is present, it creates a new one.
-// For any existing term, it also increments the reference count.
-func (s *QuadStore) getOrCreateID(term string) uint64 {
-	id, ok := s.termToID[term]
-	if ok {
-		if id != 0 {
-			s.idToTermInfo[id].refCount++
-		}
-	} else {
-		id = s.nextID
-		s.nextID++
-		s.termToID[term] = id
-		s.idToTermInfo[id] = &termInfo{
-			term:     term,
-			refCount: 1,
-		}
-	}
-	return id
-}
+// // getOrCreateID returns an internal ID for a given term.
+// // If no existing ID is present, it creates a new one.
+// // For any existing term, it also increments the reference count.
+// func (s *QuadStore) getOrCreateID(term string) uint64 {
+// 	return s.strMan.getOrCreateID(term)
+// }
 
-// releaseRef decrements a term's reference count.
-// When a term is no longer referenced, it is removed
-// from all maps.
-// The given id must exist or releaseRef will aspolde.
-func (s *QuadStore) releaseRef(id uint64) {
-	info := s.idToTermInfo[id]
-	c := info.refCount
-	c--
-	if c == 0 {
-		delete(s.termToID, info.term)
-		delete(s.idToTermInfo, id)
-		return
-	}
-	info.refCount = c
-}
+// // releaseRef decrements a term's reference count.
+// // When a term is no longer referenced, it is removed
+// // from all maps.
+// // The given id must exist or releaseRef will aspolde.
+// func (s *QuadStore) releaseRef(id uint64) {
+// 	s.strMan.releaseRef(id)
+// }
 
 // Removes quads from the store. Returns the number of quads removed.
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
 func (s *QuadStore) Remove(subject, predicate, object, graph string) uint64 {
-	termToID := s.termToID
-	idToTerm := s.idToTerm
+	termToID := s.strMan.stringToID
+	idToTerm := s.strMan.idToString
 	graphs := s.graphs
 	// Find internal identifiers for terms.
-	sid, sok := termToID[subject]
-	pid, pok := termToID[predicate]
-	oid, ook := termToID[object]
+	sid, sok := termToID(subject)
+	pid, pok := termToID(predicate)
+	oid, ook := termToID(object)
 	// If any of the terms don't exist, then there are no matches.
 	if !sok || !pok || !ook {
 		return 0
@@ -487,9 +443,10 @@ func (s *QuadStore) Remove(subject, predicate, object, graph string) uint64 {
 			if s.OnRemove != nil {
 				s.OnRemove(idToTerm(sid), idToTerm(pid), idToTerm(oid), graph)
 			}
-			s.releaseRef(sid)
-			s.releaseRef(pid)
-			s.releaseRef(oid)
+			releaseRef := s.strMan.releaseRef
+			releaseRef(sid)
+			releaseRef(pid)
+			releaseRef(oid)
 			count++
 		}
 
@@ -591,12 +548,12 @@ func (idx indexLeaf) forEachMatch(query uint64, fn func(key uint64)) {
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
 func (s *QuadStore) Count(subject, predicate, object, graph string) uint64 {
-	termToId := s.termToID
+	termToID := s.strMan.stringToID
 	graphs := s.graphs
 	// Find internal identifiers for terms.
-	sid, sok := termToId[subject]
-	pid, pok := termToId[predicate]
-	oid, ook := termToId[object]
+	sid, sok := termToID(subject)
+	pid, pok := termToID(predicate)
+	oid, ook := termToID(object)
 	// If any of the terms don't exist, then there are no matches.
 	if !sok || !pok || !ook {
 		return 0
@@ -745,13 +702,12 @@ const (
 // SomeWith returns true. Otherwise, if the callback returns
 // false for all quads, then SomeWith returns false.
 func (s *QuadStore) SomeWith(subject, predicate, object, graph string, fn QuadTestFn) bool {
-	termToID := s.termToID
-	// idToTerm := s.idToTerm
+	termToID := s.strMan.stringToID
 	graphs := s.graphs
 	// Find internal identifiers for terms.
-	sid, sok := termToID[subject]
-	pid, pok := termToID[predicate]
-	oid, ook := termToID[object]
+	sid, sok := termToID(subject)
+	pid, pok := termToID(predicate)
+	oid, ook := termToID(object)
 	// If any of the terms don't exist, then there are no matches.
 	if !sok || !pok || !ook {
 		return false
@@ -840,7 +796,7 @@ func (s *QuadStore) SomeWith(subject, predicate, object, graph string, fn QuadTe
 }
 
 func indexSomeGivenNoKeys(index0 indexRoot, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {
-	idToTerm := s.idToTerm
+	idToTerm := s.strMan.idToString
 	var q [4]string // spog quad
 	q[3] = g
 	// Loop.
@@ -862,7 +818,7 @@ func indexSomeGivenNoKeys(index0 indexRoot, idx0, idx1, idx2 int, g string, s *Q
 }
 
 func indexSomeGivenKey0(index0 indexRoot, key0 uint64, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {
-	idToTerm := s.idToTerm
+	idToTerm := s.strMan.idToString
 	var q [4]string // spog quad
 	q[3] = g
 	// Lookup.
@@ -886,7 +842,7 @@ func indexSomeGivenKey0(index0 indexRoot, key0 uint64, idx0, idx1, idx2 int, g s
 }
 
 func indexSomeGivenKey0And1(index0 indexRoot, key0, key1 uint64, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {
-	idToTerm := s.idToTerm
+	idToTerm := s.strMan.idToString
 	var q [4]string // spog quad
 	q[3] = g
 	// Lookup.
@@ -912,7 +868,7 @@ func indexSomeGivenKey0And1(index0 indexRoot, key0, key1 uint64, idx0, idx1, idx
 }
 
 func indexSomeGivenAllKeys(index0 indexRoot, key0, key1, key2 uint64, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {
-	idToTerm := s.idToTerm
+	idToTerm := s.strMan.idToString
 	var q [4]string // spog quad
 	q[3] = g
 	// Lookup.
@@ -983,12 +939,12 @@ func (s *QuadStore) FindSubjects(predicate, object, graph string) []string {
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
 func (s *QuadStore) ForSubjects(predicate, object, graph string, fn StringCallbackFn) {
-	termToID := s.termToID
-	idToTerm := s.idToTerm
+	termToID := s.strMan.stringToID
+	idToTerm := s.strMan.idToString
 	graphs := s.graphs
 	// Find internal identifiers for terms.
-	pid, pok := termToID[predicate]
-	oid, ook := termToID[object]
+	pid, pok := termToID(predicate)
+	oid, ook := termToID(object)
 	// If any of the terms don't exist, then there are no matches.
 	if !pok || !ook {
 		return
@@ -1051,12 +1007,12 @@ func (s *QuadStore) FindPredicates(subject, object, graph string) []string {
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
 func (s *QuadStore) ForPredicates(subject, object, graph string, fn StringCallbackFn) {
-	termToID := s.termToID
-	idToTerm := s.idToTerm
+	termToID := s.strMan.stringToID
+	idToTerm := s.strMan.idToString
 	graphs := s.graphs
 	// Find internal identifiers for terms.
-	sid, sok := termToID[subject]
-	oid, ook := termToID[object]
+	sid, sok := termToID(subject)
+	oid, ook := termToID(object)
 	// If any of the terms don't exist, then there are no matches.
 	if !sok || !ook {
 		return
@@ -1119,12 +1075,12 @@ func (s *QuadStore) FindObjects(subject, predicate, graph string) []string {
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
 func (s *QuadStore) ForObjects(subject, predicate, graph string, fn StringCallbackFn) {
-	termToID := s.termToID
-	idToTerm := s.idToTerm
+	termToID := s.strMan.stringToID
+	idToTerm := s.strMan.idToString
 	graphs := s.graphs
 	// Find internal identifiers for terms.
-	sid, sok := termToID[subject]
-	pid, pok := termToID[predicate]
+	sid, sok := termToID(subject)
+	pid, pok := termToID(predicate)
 	// If any of the terms don't exist, then there are no matches.
 	if !sok || !pok {
 		return
