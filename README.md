@@ -27,6 +27,7 @@ s := store4.NewQuadStore()
 s.Add("Alice", "knows", "Bob", "")
 s.Add("Alice", "knows", "Charlie", "")
 s.Add("Charlie", "knows", "Bob", "")
+s.Add("Charlie", "age", 23, "")
 
 // Find everyone that Alice knows, in any graph.
 x := s.FindObjects("Alice", "knows", "*")
