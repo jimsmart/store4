@@ -4,6 +4,9 @@
 //
 // The QuadStore API is based around subject-predicate-object-graph quads.
 //
+// The subject, predicate and graph terms are all of type string, whereas the
+// object term permits any type.
+//
 //  // Add some quads to a store.
 //  s := store4.NewQuadStore()
 //  s.Add("s", "p", "o", "g")
