@@ -2082,6 +2082,24 @@ var _ = Describe("QuadStore", func() {
 				Expect(results[0].Subject).To(Equal("s1"))
 			})
 		})
+
+		Context("when called with a matching pattern as map[string]interface{}", func() {
+			pattern := map[string]interface{}{"p1": "o1", "p2": "o3"}
+			results := store.Query(pattern, "*")
+			It("should return the correct results", func() {
+				Expect(len(results)).To(Equal(1))
+				Expect(results[0].Subject).To(Equal("s1"))
+			})
+		})
+
+		Context("when called with a matching pattern as map[string][]interface{}", func() {
+			pattern := map[string][]interface{}{"p1": {"o1", "o2"}, "p2": {"o3"}}
+			results := store.Query(pattern, "*")
+			It("should return the correct results", func() {
+				Expect(len(results)).To(Equal(1))
+				Expect(results[0].Subject).To(Equal("s1"))
+			})
+		})
 	})
 
 	Describe("OnAdd", func() {

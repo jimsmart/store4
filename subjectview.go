@@ -75,35 +75,54 @@ func (g *GraphView) SubjectViews(predicate, object string) []*SubjectView {
 	return g.QuadStore.SubjectViews(predicate, object, g.Graph)
 }
 
+type tuple struct {
+	p string
+	o interface{}
+}
+
 // Query returns a list of SubjectViews for subjects in the store
 // having predicate-object terms that match the given pattern.
 //
 // Pattern is a collection of predicate-object tuples,
 // expressed using any of the following types:
+//  map[string][]interface{}
 //  map[string][]string
+//  map[string]interface{}
 //  map[string]string
 //  [][2]string
 //  [2]string
 func (s *QuadStore) Query(pattern interface{}, graph string) []*SubjectView {
 	// Convert given pattern into query list.
-	var poList [][2]string
+	var poList []tuple
 	switch pattern := pattern.(type) {
 	default:
 		panic(fmt.Sprintf("unexpected type %T\n", pattern))
 	case map[string]string:
 		for p, o := range pattern {
-			poList = append(poList, [2]string{p, o})
+			poList = append(poList, tuple{p, o})
+		}
+	case map[string]interface{}:
+		for p, o := range pattern {
+			poList = append(poList, tuple{p, o})
 		}
 	case map[string][]string:
 		for p, objects := range pattern {
 			for _, o := range objects {
-				poList = append(poList, [2]string{p, o})
+				poList = append(poList, tuple{p, o})
+			}
+		}
+	case map[string][]interface{}:
+		for p, objects := range pattern {
+			for _, o := range objects {
+				poList = append(poList, tuple{p, o})
 			}
 		}
 	case [][2]string:
-		poList = pattern
+		for _, po := range pattern {
+			poList = append(poList, tuple{po[0], po[1]})
+		}
 	case [2]string:
-		poList = append(poList, pattern)
+		poList = append(poList, tuple{pattern[0], pattern[1]})
 	}
 	// Nothing to do?
 	if len(poList) == 0 {
@@ -115,11 +134,11 @@ func (s *QuadStore) Query(pattern interface{}, graph string) []*SubjectView {
 	}
 
 	var out []*SubjectView
-	s.ForSubjects(poList[0][0], poList[0][1], graph, func(subject string) {
+	s.ForSubjects(poList[0].p, poList[0].o, graph, func(subject string) {
 		// Got a match for first q entry,
 		// check if it also satisfies all other q entries.
 		for _, po := range poList[1:] {
-			if !s.SomeWith(subject, po[0], po[1], graph, haltFn) {
+			if !s.SomeWith(subject, po.p, po.o, graph, haltFn) {
 				// No match, try next subject.
 				return
 			}

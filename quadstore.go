@@ -101,14 +101,14 @@ type indexLeaf map[uint64]struct{}
 //  struct {
 //      Subject   string
 //      Predicate string
-//      Object    string
+//      Object    string // Or interface{}
 //      Graph     string // Optional.
 //  }
 // -or-
 //  struct {
 //      S string
 //      P string
-//      O string
+//      O string // Or interface{}
 //      G string // Optional.
 //  }
 //
@@ -118,14 +118,14 @@ type indexLeaf map[uint64]struct{}
 //  interface {
 //	    Subject()   string
 //	    Predicate() string
-//	    Object()    string
+//	    Object()    interface{}
 //	    Graph()     string // Optional.
 //  }
 // -or-
 //  interface {
 //      S() string
 //      P() string
-//      O() string
+//      O() interface{}
 //      G() string // Optional.
 //  }
 //
