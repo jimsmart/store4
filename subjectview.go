@@ -71,7 +71,7 @@ func (g *GraphView) SubjectView(subject string) *SubjectView {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *GraphView) SubjectViews(predicate, object string) []*SubjectView {
+func (g *GraphView) SubjectViews(predicate string, object interface{}) []*SubjectView {
 	return g.QuadStore.SubjectViews(predicate, object, g.Graph)
 }
 
@@ -158,8 +158,13 @@ func (s *QuadStore) Query(pattern interface{}, graph string) []*SubjectView {
 // having predicate-object terms that match the given pattern.
 //
 // Pattern is a collection of predicate-object tuples,
-// expressed as any of the following types:
-// map[string]string, map[string][]string, [][2]string, or a single [2]string.
+// expressed using any of the following types:
+//  map[string][]interface{}
+//  map[string][]string
+//  map[string]interface{}
+//  map[string]string
+//  [][2]string
+//  [2]string
 func (g *GraphView) Query(pattern interface{}) []*SubjectView {
 	return g.QuadStore.Query(pattern, g.Graph)
 }

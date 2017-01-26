@@ -129,7 +129,7 @@ type indexLeaf map[uint64]struct{}
 //      G() string // Optional.
 //  }
 //
-// Finally, if the type of the given args is unrecognised,
+// Finally, if the type of the given args cannot be handled,
 // then NewQuadStore will panic.
 func NewQuadStore(args ...interface{}) *QuadStore {
 	s := &QuadStore{
