@@ -196,7 +196,25 @@ var _ = Describe("QuadStore", func() {
 				}))
 			})
 		})
-
+		Context("from a quad-like struct with a non-string object type", func() {
+			store := NewQuadStore(
+				struct {
+					Subject   string
+					Predicate string
+					Object    interface{}
+					Graph     string
+				}{"s1", "p1", "o1", ""},
+			)
+			It("should have size 1", func() {
+				Expect(store.Size()).To(Equal(uint64(1)))
+			})
+			It("should contain the correct quads", func() {
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
+					{"s1", "p1", "o1", ""},
+				}))
+			})
+		})
 		Context("from a pointer to a quad-like struct", func() {
 			store := NewQuadStore(
 				&struct {
@@ -460,6 +478,41 @@ var _ = Describe("QuadStore", func() {
 			})
 		})
 
+	})
+
+	Describe("non-string object values", func() {
+		Context("a store initialised with non-string object values", func() {
+			store := NewQuadStore(
+				[]struct {
+					Subject   string
+					Predicate string
+					Object    interface{}
+					Graph     string
+				}{{"s1", "p1", 3, ""}, {"s1", "p2", 3, ""}, {"s1", "p2", 4, ""}},
+			)
+			It("should have size 3", func() {
+				Expect(store.Size()).To(Equal(uint64(3)))
+			})
+			It("should contain the correct quads", func() {
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
+					{"s1", "p1", 3, ""},
+					{"s1", "p2", 3, ""},
+					{"s1", "p2", 4, ""},
+				}))
+			})
+			It("should delete quads correctly", func() {
+				Expect(store.Remove("s1", "p2", 4, "")).To(Equal(uint64(1)))
+				Expect(store.Size()).To(Equal(uint64(2)))
+			})
+			It("should work correctly with find methods", func() {
+				Expect(store.FindSubjects("p2", 3, "")).To(Equal([]string{"s1"}))
+			})
+			It("should delete further quads correctly", func() {
+				Expect(store.Remove("s1", "p2", 3, "")).To(Equal(uint64(1)))
+				Expect(store.Size()).To(Equal(uint64(1)))
+			})
+		})
 	})
 
 	Describe("A QuadStore initialised with 3 elements", func() {

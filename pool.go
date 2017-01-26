@@ -80,6 +80,7 @@ func (s *pool) anyToID(item interface{}) (uint64, bool) {
 // If no existing ID is present, it creates a new one.
 // For any existing string, it also increments the reference count.
 func (s *pool) getOrCreateIDString(str string) uint64 {
+	// This will issue bad IDs after 9,223,372,036,854,775,807 unique strings have been seen (64 bit wrap around).
 	id, ok := s.strToID[str]
 	if ok {
 		if id != 0 {
@@ -99,6 +100,7 @@ func (s *pool) getOrCreateIDString(str string) uint64 {
 
 // getOrCreateIDAny returns an ID for a given item.
 func (s *pool) getOrCreateIDAny(item interface{}) uint64 {
+	// This will issue bad IDs after 9,223,372,036,854,775,807 unique items have been seen (64 bit wrap around).
 	if str, sok := item.(string); sok {
 		return s.getOrCreateIDString(str)
 	}
