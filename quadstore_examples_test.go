@@ -140,7 +140,7 @@ func ExampleQuadStore_Every() {
 		{"s2", "p2", "o2", "g1"},
 	})
 
-	g1TestFn := func(s, p, o, g string) bool {
+	g1TestFn := func(s, p string, o interface{}, g string) bool {
 		return g == "g1"
 	}
 
@@ -173,7 +173,7 @@ func ExampleQuadStore_EveryWith() {
 		{"s2", "p2", "o2", "g1"},
 	})
 
-	g1TestFn := func(s, p, o, g string) bool {
+	g1TestFn := func(s, p string, o interface{}, g string) bool {
 		return g == "g1"
 	}
 
@@ -324,18 +324,18 @@ func ExampleQuadStore_FindObjects() {
 	results := s.FindObjects("*", "*", "*")
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	sort.Strings(results)
+	SortObjects(results)
 	fmt.Println(results)
 
 	// Find all objects in graph g1.
 	results = s.FindObjects("*", "*", "g1")
-	sort.Strings(results)
+	SortObjects(results)
 	fmt.Println(results)
 
 	// Find objects for quads that have
 	// both subject s1 and predicate p2.
 	results = s.FindObjects("s2", "p2", "*")
-	sort.Strings(results)
+	SortObjects(results)
 	fmt.Println(results)
 
 	// Output:
@@ -355,24 +355,24 @@ func ExampleQuadStore_ForEach() {
 	})
 
 	// Iterate over all quads.
-	var results [][4]string
-	s.ForEach(func(s, p, o, g string) {
-		results = append(results, [4]string{s, p, o, g})
+	var results []*Quad
+	s.ForEach(func(s, p string, o interface{}, g string) {
+		results = append(results, &Quad{s, p, o, g})
 	})
 
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	store4.SortQuads(results)
+	SortQuads(results)
 	for _, q := range results {
 		fmt.Println(q)
 	}
 
 	// Output:
-	// [s1 p1 o1 g1]
-	// [s1 p2 o2 g1]
-	// [s2 p2 o2 g1]
-	// [s2 p2 o3 g2]
-	// [s3 p3 o3 g2]
+	// &{s1 p1 o1 g1}
+	// &{s1 p2 o2 g1}
+	// &{s2 p2 o2 g1}
+	// &{s2 p2 o3 g2}
+	// &{s3 p3 o3 g2}
 }
 
 func ExampleQuadStore_ForEachWith() {
@@ -386,22 +386,22 @@ func ExampleQuadStore_ForEachWith() {
 	})
 
 	// Iterate over all quads with predicate p2.
-	var results [][4]string
-	s.ForEachWith("*", "p2", "*", "*", func(s, p, o, g string) {
-		results = append(results, [4]string{s, p, o, g})
+	var results []*Quad
+	s.ForEachWith("*", "p2", "*", "*", func(s, p string, o interface{}, g string) {
+		results = append(results, &Quad{s, p, o, g})
 	})
 
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	store4.SortQuads(results)
+	SortQuads(results)
 	for _, q := range results {
 		fmt.Println(q)
 	}
 
 	// Output:
-	// [s1 p2 o2 g1]
-	// [s2 p2 o2 g1]
-	// [s2 p2 o3 g2]
+	// &{s1 p2 o2 g1}
+	// &{s2 p2 o2 g1}
+	// &{s2 p2 o3 g2}
 }
 
 func ExampleQuadStore_ForGraphs() {
@@ -554,31 +554,31 @@ func ExampleQuadStore_ForObjects() {
 		{"s3", "p3", "o3", "g2"},
 	})
 
-	var results1 []string
+	var results1 []interface{}
 	// Iterate over all objects in the store.
-	s.ForObjects("*", "*", "*", func(o string) {
+	s.ForObjects("*", "*", "*", func(o interface{}) {
 		results1 = append(results1, o)
 	})
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	sort.Strings(results1)
+	SortObjects(results1)
 	fmt.Println(results1)
 
-	var results2 []string
+	var results2 []interface{}
 	// Iterate over all objects in graph g1.
-	s.ForObjects("*", "*", "g1", func(o string) {
+	s.ForObjects("*", "*", "g1", func(o interface{}) {
 		results2 = append(results2, o)
 	})
-	sort.Strings(results2)
+	SortObjects(results2)
 	fmt.Println(results2)
 
-	var results3 []string
+	var results3 []interface{}
 	// Iterate over objects for quads that have
 	// both subject s1 and predicate p2.
-	s.ForObjects("s2", "p2", "*", func(o string) {
+	s.ForObjects("s2", "p2", "*", func(o interface{}) {
 		results3 = append(results3, o)
 	})
-	sort.Strings(results3)
+	SortObjects(results3)
 	fmt.Println(results3)
 
 	// Output:
@@ -664,11 +664,11 @@ func ExampleQuadStore_Some() {
 		{"s2", "p2", "o2", "g1"},
 	})
 
-	s2TestFn := func(s, p, o, g string) bool {
+	s2TestFn := func(s, p string, o interface{}, g string) bool {
 		return s == "s2"
 	}
 
-	g3TestFn := func(s, p, o, g string) bool {
+	g3TestFn := func(s, p string, o interface{}, g string) bool {
 		return g == "g3"
 	}
 
@@ -693,7 +693,7 @@ func ExampleQuadStore_SomeWith() {
 		{"s2", "p2", "o2", "g1"},
 	})
 
-	alwaysTrueFn := func(s, p, o, g string) bool {
+	alwaysTrueFn := func(s, p string, o interface{}, g string) bool {
 		return true
 	}
 

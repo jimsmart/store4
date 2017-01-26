@@ -10,14 +10,14 @@ import (
 // callback functions that receive a triple.
 //
 // Used with calls to GraphView's ForEach and ForEachWith.
-type TripleCallbackFn func(s, p, o string)
+type TripleCallbackFn func(s, p string, o interface{})
 
 // TripleTestFn is the function signature used to implement
 // callback functions performing triple tests.
 // A response of true means that the test has been passed.
 //
 // Used with calls to GraphView's Every, EveryWith, Some and SomeWith.
-type TripleTestFn func(s, p, o string) bool
+type TripleTestFn func(s, p string, o interface{}) bool
 
 // GraphView provides a graph-centric API
 // for working with subject-predicate-object triples.
@@ -47,7 +47,7 @@ func (s *QuadStore) GraphView(graph string) *GraphView {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) GraphViews(subject, predicate, object string) []*GraphView {
+func (s *QuadStore) GraphViews(subject, predicate string, object interface{}) []*GraphView {
 	var out []*GraphView
 	s.ForGraphs(subject, predicate, object, func(graph string) {
 		g := &GraphView{
@@ -102,7 +102,7 @@ func NewGraph(args ...interface{}) *GraphView {
 // If any of the given terms are "*" (an asterisk),
 // then this method will panic. (The asterisk is reserved
 // for wildcard operations throughout the API).
-func (g *GraphView) Add(subject, predicate, object string) bool {
+func (g *GraphView) Add(subject, predicate string, object interface{}) bool {
 	return g.QuadStore.Add(subject, predicate, object, g.Graph)
 }
 
@@ -110,7 +110,7 @@ func (g *GraphView) Add(subject, predicate, object string) bool {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *GraphView) Count(subject, predicate, object string) uint64 {
+func (g *GraphView) Count(subject, predicate string, object interface{}) uint64 {
 	return g.QuadStore.Count(subject, predicate, object, g.Graph)
 }
 
@@ -150,7 +150,7 @@ func (g *GraphView) Every(fn TripleTestFn) bool {
 // then EveryWith returns false. Note that this differs from
 // the interpretation of 'every' in some other languages,
 // which may return true for an empty iteration set.
-func (g *GraphView) EveryWith(subject, predicate, object string, fn TripleTestFn) bool {
+func (g *GraphView) EveryWith(subject, predicate string, object interface{}, fn TripleTestFn) bool {
 	return g.QuadStore.EveryWith(subject, predicate, object, g.Graph, adaptTripleTestFn(fn))
 }
 
@@ -159,7 +159,7 @@ func (g *GraphView) EveryWith(subject, predicate, object string, fn TripleTestFn
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *GraphView) FindObjects(subject, predicate string) []string {
+func (g *GraphView) FindObjects(subject, predicate string) []interface{} {
 	return g.QuadStore.FindObjects(subject, predicate, g.Graph)
 }
 
@@ -168,7 +168,7 @@ func (g *GraphView) FindObjects(subject, predicate string) []string {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *GraphView) FindPredicates(subject, object string) []string {
+func (g *GraphView) FindPredicates(subject string, object interface{}) []string {
 	return g.QuadStore.FindPredicates(subject, object, g.Graph)
 }
 
@@ -177,7 +177,7 @@ func (g *GraphView) FindPredicates(subject, object string) []string {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *GraphView) FindSubjects(predicate, object string) []string {
+func (g *GraphView) FindSubjects(predicate string, object interface{}) []string {
 	return g.QuadStore.FindSubjects(predicate, object, g.Graph)
 }
 
@@ -191,7 +191,7 @@ func (g *GraphView) ForEach(fn TripleCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *GraphView) ForEachWith(subject, predicate, object string, fn TripleCallbackFn) {
+func (g *GraphView) ForEachWith(subject, predicate string, object interface{}, fn TripleCallbackFn) {
 	g.QuadStore.ForEachWith(subject, predicate, object, g.Graph, adaptTripleCallbackFn(fn))
 }
 
@@ -200,7 +200,7 @@ func (g *GraphView) ForEachWith(subject, predicate, object string, fn TripleCall
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *GraphView) ForObjects(subject, predicate string, fn StringCallbackFn) {
+func (g *GraphView) ForObjects(subject, predicate string, fn ObjectCallbackFn) {
 	g.QuadStore.ForObjects(subject, predicate, g.Graph, fn)
 }
 
@@ -209,7 +209,7 @@ func (g *GraphView) ForObjects(subject, predicate string, fn StringCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *GraphView) ForPredicates(subject, object string, fn StringCallbackFn) {
+func (g *GraphView) ForPredicates(subject string, object interface{}, fn StringCallbackFn) {
 	g.QuadStore.ForPredicates(subject, object, g.Graph, fn)
 }
 
@@ -218,7 +218,7 @@ func (g *GraphView) ForPredicates(subject, object string, fn StringCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *GraphView) ForSubjects(predicate, object string, fn StringCallbackFn) {
+func (g *GraphView) ForSubjects(predicate string, object interface{}, fn StringCallbackFn) {
 	g.QuadStore.ForSubjects(predicate, object, g.Graph, fn)
 }
 
@@ -229,7 +229,7 @@ func (g *GraphView) ForSubjects(predicate, object string, fn StringCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (g *GraphView) Remove(subject, predicate, object string) uint64 {
+func (g *GraphView) Remove(subject, predicate string, object interface{}) uint64 {
 	return g.QuadStore.Remove(subject, predicate, object, g.Graph)
 }
 
@@ -260,7 +260,7 @@ func (g *GraphView) Some(fn TripleTestFn) bool {
 // an element is found, iteration is immediately halted and
 // SomeWith returns true. Otherwise, if the callback returns
 // false for all triples, then SomeWith returns false.
-func (g *GraphView) SomeWith(subject, predicate, object string, fn TripleTestFn) bool {
+func (g *GraphView) SomeWith(subject, predicate string, object interface{}, fn TripleTestFn) bool {
 	return g.QuadStore.SomeWith(subject, predicate, object, g.Graph, adaptTripleTestFn(fn))
 }
 
@@ -279,14 +279,14 @@ func (g *GraphView) String() string {
 		sort.Strings(predicates)
 		for _, predicate := range predicates {
 			objects := g.FindObjects(subject, predicate)
-			sort.Strings(objects)
+			sortObjects(objects)
 			for _, object := range objects {
 				buf.WriteByte('[')
 				buf.WriteString(subject)
 				buf.WriteByte(' ')
 				buf.WriteString(predicate)
 				buf.WriteByte(' ')
-				buf.WriteString(object)
+				buf.WriteString(fmt.Sprint(object))
 				buf.WriteByte(']')
 				buf.WriteByte('\n')
 			}
@@ -296,13 +296,13 @@ func (g *GraphView) String() string {
 }
 
 func adaptTripleCallbackFn(fn TripleCallbackFn) QuadCallbackFn {
-	return func(s, p, o, g string) {
+	return func(s, p string, o interface{}, g string) {
 		fn(s, p, o)
 	}
 }
 
 func adaptTripleTestFn(fn TripleTestFn) QuadTestFn {
-	return func(s, p, o, g string) bool {
+	return func(s, p string, o interface{}, g string) bool {
 		return fn(s, p, o)
 	}
 }

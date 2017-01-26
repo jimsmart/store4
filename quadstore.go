@@ -11,20 +11,28 @@ import (
 // callback functions that receive a quad.
 //
 // Used with calls to QuadStore's ForEach and ForEachWith.
-type QuadCallbackFn func(s, p, o, g string)
+// type QuadCallbackFn func(s, p, o, g string)
+type QuadCallbackFn func(s, p string, o interface{}, g string)
 
 // QuadTestFn is the function signature used to implement
 // callback functions performing quad tests.
 // A response of true means that the test has been passed.
 //
 // Used with calls to QuadStore's Every, EveryWith, Some and SomeWith.
-type QuadTestFn func(s, p, o, g string) bool
+// type QuadTestFn func(s, p, o, g string) bool
+type QuadTestFn func(s, p string, o interface{}, g string) bool
 
 // StringCallbackFn is the function signature used to implement
 // callback functions that receive a string.
 //
-// Used with calls to FindSubjects, FindPredicates, FindObjects and FindGraphs.
+// Used with calls to FindSubjects, FindPredicates and FindGraphs.
 type StringCallbackFn func(s string)
+
+// ObjectCallbackFn is the function signature used to implement
+// callback functions that receive an object.
+//
+// Used with calls to FindObjects.
+type ObjectCallbackFn func(o interface{})
 
 // QuadStore is an in-memory string-based quad store.
 //
@@ -159,7 +167,7 @@ func NewQuadStore(args ...interface{}) *QuadStore {
 type tripler interface {
 	Subject() string
 	Predicate() string
-	Object() string
+	Object() interface{}
 }
 
 type grapher interface {
@@ -169,7 +177,7 @@ type grapher interface {
 type simplerTripler interface {
 	S() string
 	P() string
-	O() string
+	O() interface{}
 }
 
 type simplerGrapher interface {
@@ -200,6 +208,13 @@ func initWithReflection(s *QuadStore, arg interface{}) {
 	t := reflect.TypeOf(arg)
 	k := t.Kind()
 	switch k {
+	case reflect.Ptr:
+		// Pointer to single quad- or triple-like struct.
+		t = reflect.Indirect(reflect.ValueOf(arg)).Type()
+		if findMappings(t, m) {
+			s.Add(quadFromStruct(arg, m))
+			return
+		}
 	case reflect.Struct:
 		// Single quad-like or triple-like struct.
 		if findMappings(t, m) {
@@ -207,8 +222,9 @@ func initWithReflection(s *QuadStore, arg interface{}) {
 			return
 		}
 	case reflect.Slice:
-		// Slice of quad-like or triple-like structs
-		// or, alternatively, structs implementing a
+		// A slice of quad- or triple-like structs,
+		// or slice of pointers to quad- or triple-like structs,
+		// or, alternatively, a slice structs implementing a
 		// compatible interface.
 		val := reflect.ValueOf(arg)
 		length := val.Len()
@@ -217,15 +233,7 @@ func initWithReflection(s *QuadStore, arg interface{}) {
 		}
 		el := val.Index(0)
 		iface := el.Interface()
-		if findMappings(el.Type(), m) {
-			s.Add(quadFromStruct(iface, m))
-			for i := 1; i < length; i++ {
-				el = val.Index(i)
-				iface = el.Interface()
-				s.Add(quadFromStruct(iface, m))
-			}
-			return
-		}
+		t := reflect.Indirect(el).Type()
 		if addQuadFromInterfaces(s, iface) {
 			for i := 1; i < length; i++ {
 				el = val.Index(i)
@@ -234,16 +242,33 @@ func initWithReflection(s *QuadStore, arg interface{}) {
 			}
 			return
 		}
+		if findMappings(t, m) {
+			s.Add(quadFromStruct(iface, m))
+			for i := 1; i < length; i++ {
+				el = val.Index(i)
+				iface = el.Interface()
+				s.Add(quadFromStruct(iface, m))
+			}
+			return
+		}
+		// if addQuadFromInterfaces(s, iface) {
+		// 	for i := 1; i < length; i++ {
+		// 		el = val.Index(i)
+		// 		iface = el.Interface()
+		// 		addQuadFromInterfaces(s, iface)
+		// 	}
+		// 	return
+		// }
 	}
 	panic(fmt.Sprintf("unexpected type %T\n", arg))
 }
 
-func quadFromStruct(arg interface{}, m []int) (s, p, o, g string) {
+func quadFromStruct(arg interface{}, m []int) (s, p string, o interface{}, g string) {
 	// Use the mappings to pull out the required values.
-	val := reflect.ValueOf(arg)
+	val := reflect.Indirect(reflect.ValueOf(arg))
 	s = val.Field(m[0]).String()
 	p = val.Field(m[1]).String()
-	o = val.Field(m[2]).String()
+	o = val.Field(m[2]).Interface()
 	if m[3] != -1 {
 		g = val.Field(m[3]).String()
 	}
@@ -262,8 +287,11 @@ func findMappings(t reflect.Type, m []int) bool {
 			vField := t.Field(i)
 			name := vField.Name
 			idx, ok := fields[name]
-			if ok && vField.Type.Kind() == reflect.String {
-				m[idx] = i
+			if ok {
+				k := vField.Type.Kind()
+				if k == reflect.String || (k == reflect.Interface && idx == 2) {
+					m[idx] = i
+				}
 			}
 		}
 		// Check that all the fields exist.
@@ -309,7 +337,7 @@ func (s *QuadStore) Empty() bool {
 //
 // If any of the given terms are "*" (an asterisk), then this method will panic.
 // (The asterisk is reserved for wildcard operations throughout the API).
-func (s *QuadStore) Add(subject, predicate, object, graph string) bool {
+func (s *QuadStore) Add(subject, predicate string, object interface{}, graph string) bool {
 	// Disallow wildcard terms
 	// Optimisation: we check the other params after resolvng to IDs.
 	if graph == "*" {
@@ -398,7 +426,7 @@ func addToIndex(index0 indexRoot, key0, key1, key2 uint64) bool {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) Remove(subject, predicate, object, graph string) uint64 {
+func (s *QuadStore) Remove(subject, predicate string, object interface{}, graph string) uint64 {
 	termToID := s.strMan.stringToID
 	idToTerm := s.strMan.idToString
 	graphs := s.graphs
@@ -547,7 +575,7 @@ func (idx indexLeaf) forEachMatch(query uint64, fn func(key uint64)) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) Count(subject, predicate, object, graph string) uint64 {
+func (s *QuadStore) Count(subject, predicate string, object interface{}, graph string) uint64 {
 	termToID := s.strMan.stringToID
 	graphs := s.graphs
 	// Find internal identifiers for terms.
@@ -615,8 +643,8 @@ func (s *QuadStore) ForEach(fn QuadCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) ForEachWith(subject, predicate, object, graph string, fn QuadCallbackFn) {
-	iterAllFnWrapper := func(s, p, o, g string) bool {
+func (s *QuadStore) ForEachWith(subject, predicate string, object interface{}, graph string, fn QuadCallbackFn) {
+	iterAllFnWrapper := func(s, p string, o interface{}, g string) bool {
 		fn(s, p, o, g)
 		return false
 	}
@@ -655,9 +683,9 @@ func (s *QuadStore) Every(fn QuadTestFn) bool {
 // then EveryWith returns false. Note that this differs from
 // the interpretation of 'every' in some other languages,
 // which may return true for an empty iteration set.
-func (s *QuadStore) EveryWith(subject, predicate, object, graph string, fn QuadTestFn) bool {
+func (s *QuadStore) EveryWith(subject, predicate string, object interface{}, graph string, fn QuadTestFn) bool {
 	some := false
-	everyFn := func(s, p, o, g string) bool {
+	everyFn := func(s, p string, o interface{}, g string) bool {
 		some = true
 		return !fn(s, p, o, g)
 	}
@@ -701,7 +729,7 @@ const (
 // an element is found, iteration is immediately halted and
 // SomeWith returns true. Otherwise, if the callback returns
 // false for all quads, then SomeWith returns false.
-func (s *QuadStore) SomeWith(subject, predicate, object, graph string, fn QuadTestFn) bool {
+func (s *QuadStore) SomeWith(subject, predicate string, object interface{}, graph string, fn QuadTestFn) bool {
 	termToID := s.strMan.stringToID
 	graphs := s.graphs
 	// Find internal identifiers for terms.
@@ -896,10 +924,10 @@ func indexSomeGivenAllKeys(index0 indexRoot, key0, key1, key2 uint64, idx0, idx1
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) FindGraphs(subject, predicate, object string) []string {
+func (s *QuadStore) FindGraphs(subject, predicate string, object interface{}) []string {
 	var out []string
-	collectResultsFn := func(s string) {
-		out = append(out, s)
+	collectResultsFn := func(g string) {
+		out = append(out, g)
 	}
 	s.ForGraphs(subject, predicate, object, collectResultsFn)
 	return out
@@ -910,8 +938,8 @@ func (s *QuadStore) FindGraphs(subject, predicate, object string) []string {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) ForGraphs(subject, predicate, object string, fn StringCallbackFn) {
-	callbackAndBreakFn := func(s, p, o, g string) bool {
+func (s *QuadStore) ForGraphs(subject, predicate string, object interface{}, fn StringCallbackFn) {
+	callbackAndBreakFn := func(s, p string, o interface{}, g string) bool {
 		fn(g)
 		return true
 	}
@@ -924,7 +952,7 @@ func (s *QuadStore) ForGraphs(subject, predicate, object string, fn StringCallba
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) FindSubjects(predicate, object, graph string) []string {
+func (s *QuadStore) FindSubjects(predicate string, object interface{}, graph string) []string {
 	var out []string
 	collectResultsFn := func(s string) {
 		out = append(out, s)
@@ -938,7 +966,7 @@ func (s *QuadStore) FindSubjects(predicate, object, graph string) []string {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) ForSubjects(predicate, object, graph string, fn StringCallbackFn) {
+func (s *QuadStore) ForSubjects(predicate string, object interface{}, graph string, fn StringCallbackFn) {
 	termToID := s.strMan.stringToID
 	idToTerm := s.strMan.idToString
 	graphs := s.graphs
@@ -992,10 +1020,10 @@ func (s *QuadStore) ForSubjects(predicate, object, graph string, fn StringCallba
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) FindPredicates(subject, object, graph string) []string {
+func (s *QuadStore) FindPredicates(subject string, object interface{}, graph string) []string {
 	var out []string
-	collectResultsFn := func(s string) {
-		out = append(out, s)
+	collectResultsFn := func(p string) {
+		out = append(out, p)
 	}
 	s.ForPredicates(subject, object, graph, collectResultsFn)
 	return out
@@ -1006,7 +1034,7 @@ func (s *QuadStore) FindPredicates(subject, object, graph string) []string {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) ForPredicates(subject, object, graph string, fn StringCallbackFn) {
+func (s *QuadStore) ForPredicates(subject string, object interface{}, graph string, fn StringCallbackFn) {
 	termToID := s.strMan.stringToID
 	idToTerm := s.strMan.idToString
 	graphs := s.graphs
@@ -1060,10 +1088,10 @@ func (s *QuadStore) ForPredicates(subject, object, graph string, fn StringCallba
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) FindObjects(subject, predicate, graph string) []string {
-	var out []string
-	collectResultsFn := func(s string) {
-		out = append(out, s)
+func (s *QuadStore) FindObjects(subject, predicate, graph string) []interface{} {
+	var out []interface{}
+	collectResultsFn := func(o interface{}) {
+		out = append(out, o)
 	}
 	s.ForObjects(subject, predicate, graph, collectResultsFn)
 	return out
@@ -1074,7 +1102,7 @@ func (s *QuadStore) FindObjects(subject, predicate, graph string) []string {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) ForObjects(subject, predicate, graph string, fn StringCallbackFn) {
+func (s *QuadStore) ForObjects(subject, predicate, graph string, fn ObjectCallbackFn) {
 	termToID := s.strMan.stringToID
 	idToTerm := s.strMan.idToString
 	graphs := s.graphs
@@ -1181,14 +1209,14 @@ func (s *QuadStore) String() string {
 			sort.Strings(predicates)
 			for _, predicate := range predicates {
 				objects := s.FindObjects(subject, predicate, graph)
-				sort.Strings(objects)
+				sortObjects(objects)
 				for _, object := range objects {
 					buf.WriteByte('[')
 					buf.WriteString(subject)
 					buf.WriteByte(' ')
 					buf.WriteString(predicate)
 					buf.WriteByte(' ')
-					buf.WriteString(object)
+					buf.WriteString(fmt.Sprint(object))
 					buf.WriteByte(' ')
 					buf.WriteString(graph)
 					buf.WriteByte(']')

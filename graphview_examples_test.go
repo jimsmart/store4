@@ -203,7 +203,7 @@ func ExampleGraphView_Every() {
 	g1 := s.GraphView("g1")
 	g2 := s.GraphView("g2")
 
-	s1TestFn := func(s, p, o string) bool {
+	s1TestFn := func(s, p string, o interface{}) bool {
 		return s == "s1"
 	}
 
@@ -241,7 +241,7 @@ func ExampleGraphView_EveryWith() {
 		{"s3", "p3", "o3", "g2"},
 	})
 
-	o1TestFn := func(s, p, o string) bool {
+	o1TestFn := func(s, p string, o interface{}) bool {
 		return o == "o1"
 	}
 
@@ -348,7 +348,7 @@ func ExampleGraphView_FindObjects() {
 	results := g1.FindObjects("*", "*")
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	sort.Strings(results)
+	SortObjects(results)
 	fmt.Println(results)
 
 	union := s.GraphView("*")
@@ -356,7 +356,7 @@ func ExampleGraphView_FindObjects() {
 	// Find objects for triples in any graph that have
 	// both subject s1 and predicate p2.
 	results = union.FindObjects("s2", "p2")
-	sort.Strings(results)
+	SortObjects(results)
 	fmt.Println(results)
 
 	// Output:
@@ -377,22 +377,22 @@ func ExampleGraphView_ForEach() {
 	g1 := s.GraphView("g1")
 
 	// Iterate over all triples.
-	var results [][3]string
-	g1.ForEach(func(s, p, o string) {
-		results = append(results, [3]string{s, p, o})
+	var results []*Triple
+	g1.ForEach(func(s, p string, o interface{}) {
+		results = append(results, &Triple{s, p, o})
 	})
 
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	store4.SortTriples(results)
+	SortTriples(results)
 	for _, q := range results {
 		fmt.Println(q)
 	}
 
 	// Output:
-	// [s1 p1 o1]
-	// [s1 p2 o2]
-	// [s2 p2 o2]
+	// &{s1 p1 o1}
+	// &{s1 p2 o2}
+	// &{s2 p2 o2}
 }
 
 func ExampleGraphView_ForEachWith() {
@@ -408,21 +408,21 @@ func ExampleGraphView_ForEachWith() {
 	g1 := s.GraphView("g1")
 
 	// Iterate over all triples with predicate p2.
-	var results [][3]string
-	g1.ForEachWith("*", "p2", "*", func(s, p, o string) {
-		results = append(results, [3]string{s, p, o})
+	var results []*Triple
+	g1.ForEachWith("*", "p2", "*", func(s, p string, o interface{}) {
+		results = append(results, &Triple{s, p, o})
 	})
 
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	store4.SortTriples(results)
+	SortTriples(results)
 	for _, q := range results {
 		fmt.Println(q)
 	}
 
 	// Output:
-	// [s1 p2 o2]
-	// [s2 p2 o2]
+	// &{s1 p2 o2}
+	// &{s2 p2 o2}
 }
 
 func ExampleGraphView_ForSubjects() {
@@ -533,33 +533,33 @@ func ExampleGraphView_ForObjects() {
 
 	g1 := s.GraphView("g1")
 
-	var results1 []string
+	var results1 []interface{}
 	// Iterate over all objects in graph g1.
-	g1.ForObjects("*", "*", func(o string) {
+	g1.ForObjects("*", "*", func(o interface{}) {
 		results1 = append(results1, o)
 	})
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	sort.Strings(results1)
+	SortObjects(results1)
 	fmt.Println(results1)
 
 	g2 := s.GraphView("g2")
 
-	var results2 []string
+	var results2 []interface{}
 	// Iterate over all objects in graph g2.
-	g2.ForObjects("*", "*", func(o string) {
+	g2.ForObjects("*", "*", func(o interface{}) {
 		results2 = append(results2, o)
 	})
-	sort.Strings(results2)
+	SortObjects(results2)
 	fmt.Println(results2)
 
-	var results3 []string
+	var results3 []interface{}
 	// Iterate over objects for triples in graph g1 that have
 	// both subject s1 and predicate p2.
-	g1.ForObjects("s2", "p2", func(o string) {
+	g1.ForObjects("s2", "p2", func(o interface{}) {
 		results3 = append(results3, o)
 	})
-	sort.Strings(results3)
+	SortObjects(results3)
 	fmt.Println(results3)
 
 	// Output:
@@ -665,7 +665,7 @@ func ExampleGraphView_Some() {
 	g1 := s.GraphView("g1")
 	g2 := s.GraphView("g2")
 
-	s1TestFn := func(s, p, o string) bool {
+	s1TestFn := func(s, p string, o interface{}) bool {
 		return s == "s1"
 	}
 
@@ -692,7 +692,7 @@ func ExampleGraphView_SomeWith() {
 		{"s3", "p3", "o3", "g2"},
 	})
 
-	alwaysTrueFn := func(s, p, o string) bool {
+	alwaysTrueFn := func(s, p string, o interface{}) bool {
 		return true
 	}
 

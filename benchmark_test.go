@@ -138,7 +138,7 @@ func iri(i int) string {
 
 func BenchmarkSomeWith_NoWildcards(b *testing.B) {
 
-	fn := func(s, p, o, g string) bool {
+	fn := func(s, p string, o interface{}, g string) bool {
 		return true
 	}
 
@@ -155,7 +155,7 @@ func BenchmarkSomeWith_NoWildcards(b *testing.B) {
 
 func BenchmarkSomeWith_WildcardO(b *testing.B) {
 
-	fn := func(s, p, o, g string) bool {
+	fn := func(s, p string, o interface{}, g string) bool {
 		return true
 	}
 
@@ -172,7 +172,7 @@ func BenchmarkSomeWith_WildcardO(b *testing.B) {
 
 func BenchmarkSomeWith_WildcardPO(b *testing.B) {
 
-	fn := func(s, p, o, g string) bool {
+	fn := func(s, p string, o interface{}, g string) bool {
 		return true
 	}
 
@@ -189,7 +189,7 @@ func BenchmarkSomeWith_WildcardPO(b *testing.B) {
 
 func BenchmarkSomeWith_WildcardSPO(b *testing.B) {
 
-	fn := func(s, p, o, g string) bool {
+	fn := func(s, p string, o interface{}, g string) bool {
 		return true
 	}
 

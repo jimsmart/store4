@@ -1,5 +1,4 @@
-// Package store4 provides a fast in-memory string-based quad store,
-// with graph and subject views.
+// Package store4 provides a fast in-memory quad store, with graph and subject views.
 //
 // QuadStore API
 //
@@ -25,12 +24,12 @@
 // store without allocating lists for results.
 //
 //  // Iterate over all quads.
-//  s.ForEach(func(s, p, o, g string) {
+//  s.ForEach(func(s, p string, o interface{}, g string) {
 //      // ...
 //  })
 //
 //  // Iterate over quads matching given pattern.
-//  s.ForEachWith("*", "*", "Bob", "*", func(s, p, o, g string) {
+//  s.ForEachWith("*", "*", "Bob", "*", func(s, p string, o interface{}, g string) {
 //      // ...
 //  })
 //
@@ -81,7 +80,7 @@
 // with each index being composed of three layers of native Go maps.
 //
 // Internally, the store uses numeric identifiers for index keys,
-// and only holds a single reference to each string term.
+// and only holds a single reference to each term.
 //
 // Concurrency
 //

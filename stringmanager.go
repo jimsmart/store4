@@ -1,8 +1,10 @@
 package store4
 
+// TODO(js) stringManager no longer manages solely strings :/
+
 type stringManager struct {
 	// strToID maps strings to IDs.
-	strToID map[string]uint64
+	strToID map[interface{}]uint64
 	// idToStrInfo maps IDs to string info.
 	idToStrInfo map[uint64]*strInfo
 	// nextID holds the next term ID to issue.
@@ -11,7 +13,7 @@ type stringManager struct {
 
 func newStringManager() *stringManager {
 	s := &stringManager{}
-	s.strToID = make(map[string]uint64)
+	s.strToID = make(map[interface{}]uint64)
 	s.idToStrInfo = make(map[uint64]*strInfo)
 	// TODO(js) change wildcard assumption?
 
@@ -25,19 +27,19 @@ func newStringManager() *stringManager {
 
 // strInfo holds details for each string.
 type strInfo struct {
-	str      string // The string itself.
-	refCount uint64 // Reference count.
+	str      interface{} // The string itself.
+	refCount uint64      // Reference count.
 }
 
 // idToString returns the term for a given ID.
 // The given ID must exist.
 func (s *stringManager) idToString(id uint64) string {
-	return s.idToStrInfo[id].str
+	return s.idToStrInfo[id].str.(string)
 }
 
 // stringToID returns the ID for a given string and true
 // if the string exists, and 0 and false if it does not.
-func (s *stringManager) stringToID(str string) (uint64, bool) {
+func (s *stringManager) stringToID(str interface{}) (uint64, bool) {
 	id, ok := s.strToID[str]
 	return id, ok
 }
@@ -45,7 +47,7 @@ func (s *stringManager) stringToID(str string) (uint64, bool) {
 // getOrCreateID returns an ID for a given string.
 // If no existing ID is present, it creates a new one.
 // For any existing string, it also increments the reference count.
-func (s *stringManager) getOrCreateID(str string) uint64 {
+func (s *stringManager) getOrCreateID(str interface{}) uint64 {
 	id, ok := s.strToID[str]
 	if ok {
 		if id != 0 {

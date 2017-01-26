@@ -20,28 +20,41 @@ import (
 // TODO(js) Write tests for SomeWith, ForGraphs, ForSubjects, ForPredicates, ForObjects
 // - instead of relying on them being called internally.
 
-func alwaysTrueFn(s, p, o, g string) bool {
+func alwaysTrueFn(s, p string, o interface{}, g string) bool {
 	return true
 }
-func alwaysFalseFn(s, p, o, g string) bool {
+func alwaysFalseFn(s, p string, o interface{}, g string) bool {
 	return false
 }
 
-type boxedQuad1 struct{ s, p, o, g string }
+type Quad struct {
+	S string
+	P string
+	O interface{}
+	G string
+}
 
-func (b boxedQuad1) Subject() string   { return b.s }
-func (b boxedQuad1) Predicate() string { return b.p }
-func (b boxedQuad1) Object() string    { return b.o }
-func (b boxedQuad1) Graph() string     { return b.g }
+func (q Quad) Subject() string     { return q.S }
+func (q Quad) Predicate() string   { return q.P }
+func (q Quad) Object() interface{} { return q.O }
+func (q Quad) Graph() string       { return q.G }
 
 type boxedQuad2 struct{ s, p, o, g string }
 
-func (b boxedQuad2) S() string { return b.s }
-func (b boxedQuad2) P() string { return b.p }
-func (b boxedQuad2) O() string { return b.o }
-func (b boxedQuad2) G() string { return b.g }
+func (b boxedQuad2) S() string      { return b.s }
+func (b boxedQuad2) P() string      { return b.p }
+func (b boxedQuad2) O() interface{} { return b.o }
+func (b boxedQuad2) G() string      { return b.g }
 
 var _ = Describe("QuadStore", func() {
+
+	iterResults := func(store *QuadStore) []*Quad {
+		var resultsList []*Quad
+		store.ForEach(func(s, p string, o interface{}, g string) {
+			resultsList = append(resultsList, &Quad{s, p, o, g})
+		})
+		return resultsList
+	}
 
 	Describe("Creating a new QuadStore", func() {
 
@@ -56,13 +69,9 @@ var _ = Describe("QuadStore", func() {
 			It("should have size 5", func() {
 				Expect(store.Size()).To(Equal(uint64(5)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
-				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 					{"s1", "p1", "o2", ""},
 					{"s1", "p2", "o2", ""},
@@ -87,13 +96,9 @@ var _ = Describe("QuadStore", func() {
 			It("should have size 5", func() {
 				Expect(store.Size()).To(Equal(uint64(5)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
-				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 					{"s1", "p1", "o2", ""},
 					{"s1", "p2", "o2", ""},
@@ -114,13 +119,9 @@ var _ = Describe("QuadStore", func() {
 			It("should have size 5", func() {
 				Expect(store.Size()).To(Equal(uint64(5)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
-				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 					{"s1", "p1", "o2", ""},
 					{"s1", "p2", "o2", ""},
@@ -141,13 +142,9 @@ var _ = Describe("QuadStore", func() {
 			It("should have size 5", func() {
 				Expect(store.Size()).To(Equal(uint64(5)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
-				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 					{"s1", "p1", "o2", ""},
 					{"s1", "p2", "o2", ""},
@@ -168,13 +165,9 @@ var _ = Describe("QuadStore", func() {
 			It("should have size 5", func() {
 				Expect(store.Size()).To(Equal(uint64(5)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
-				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 					{"s1", "p1", "o2", ""},
 					{"s1", "p2", "o2", ""},
@@ -196,13 +189,29 @@ var _ = Describe("QuadStore", func() {
 			It("should have size 1", func() {
 				Expect(store.Size()).To(Equal(uint64(1)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
-				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
+					{"s1", "p1", "o1", ""},
+				}))
+			})
+		})
+
+		Context("from a pointer to a quad-like struct", func() {
+			store := NewQuadStore(
+				&struct {
+					Subject   string
+					Predicate string
+					Object    string
+					Graph     string
+				}{"s1", "p1", "o1", ""},
+			)
+			It("should have size 1", func() {
+				Expect(store.Size()).To(Equal(uint64(1)))
+			})
+			It("should contain the correct quads", func() {
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 				}))
 			})
@@ -220,13 +229,9 @@ var _ = Describe("QuadStore", func() {
 			It("should have size 1", func() {
 				Expect(store.Size()).To(Equal(uint64(1)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
-				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 				}))
 			})
@@ -243,13 +248,9 @@ var _ = Describe("QuadStore", func() {
 			It("should have size 1", func() {
 				Expect(store.Size()).To(Equal(uint64(1)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
-				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 				}))
 			})
@@ -266,13 +267,9 @@ var _ = Describe("QuadStore", func() {
 			It("should have size 1", func() {
 				Expect(store.Size()).To(Equal(uint64(1)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
-				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 				}))
 			})
@@ -295,13 +292,9 @@ var _ = Describe("QuadStore", func() {
 			It("should have size 5", func() {
 				Expect(store.Size()).To(Equal(uint64(5)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
-				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 					{"s1", "p1", "o2", ""},
 					{"s1", "p2", "o2", ""},
@@ -311,20 +304,16 @@ var _ = Describe("QuadStore", func() {
 			})
 		})
 
-		Context("from a boxed-quad struct", func() {
+		Context("from a Quad struct", func() {
 			store := NewQuadStore(
-				boxedQuad1{"s1", "p1", "o1", ""},
+				Quad{"s1", "p1", "o1", ""},
 			)
 			It("should have size 1", func() {
 				Expect(store.Size()).To(Equal(uint64(1)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
-				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 				}))
 			})
@@ -337,13 +326,9 @@ var _ = Describe("QuadStore", func() {
 			It("should have size 1", func() {
 				Expect(store.Size()).To(Equal(uint64(1)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
-				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 				}))
 			})
@@ -351,7 +336,7 @@ var _ = Describe("QuadStore", func() {
 
 		Context("from multiple boxed-quad structs", func() {
 			store := NewQuadStore(
-				[]boxedQuad1{
+				[]Quad{
 					{"s1", "p1", "o1", ""},
 					{"s1", "p1", "o2", ""},
 					{"s1", "p2", "o2", ""},
@@ -361,13 +346,33 @@ var _ = Describe("QuadStore", func() {
 			It("should have size 5", func() {
 				Expect(store.Size()).To(Equal(uint64(5)))
 			})
-
 			It("should contain the correct quads", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
+					{"s1", "p1", "o1", ""},
+					{"s1", "p1", "o2", ""},
+					{"s1", "p2", "o2", ""},
+					{"s2", "p1", "o1", ""},
+					{"s1", "p2", "o3", ""},
+				}))
+			})
+		})
+
+		Context("from multiple pointers to boxed-quad structs", func() {
+			store := NewQuadStore(
+				[]*Quad{
+					{"s1", "p1", "o1", ""},
+					{"s1", "p1", "o2", ""},
+					{"s1", "p2", "o2", ""},
+					{"s2", "p1", "o1", ""},
+					{"s1", "p2", "o3", ""},
 				})
-				Expect(resultsList).To(ConsistOf([][4]string{
+			It("should have size 5", func() {
+				Expect(store.Size()).To(Equal(uint64(5)))
+			})
+			It("should contain the correct quads", func() {
+				resultsList := iterResults(store)
+				Expect(resultsList).To(ConsistOf([]*Quad{
 					{"s1", "p1", "o1", ""},
 					{"s1", "p1", "o2", ""},
 					{"s1", "p2", "o2", ""},
@@ -391,7 +396,26 @@ var _ = Describe("QuadStore", func() {
 			shouldPanic := func() {
 				s = NewQuadStore(true)
 			}
+			It("should panic", func() {
+				Expect(shouldPanic).To(Panic())
+			})
+		})
 
+		Context("from a slice of unknown type", func() {
+			var s *QuadStore
+			shouldPanic := func() {
+				s = NewQuadStore([]bool{true})
+			}
+			It("should panic", func() {
+				Expect(shouldPanic).To(Panic())
+			})
+		})
+
+		Context("from a slice of structs with unknown fields", func() {
+			var s *QuadStore
+			shouldPanic := func() {
+				s = NewQuadStore([]struct{ X string }{{X: "foo"}})
+			}
 			It("should panic", func() {
 				Expect(shouldPanic).To(Panic())
 			})
@@ -405,7 +429,6 @@ var _ = Describe("QuadStore", func() {
 		It("should have size 0", func() {
 			Expect(store.Size()).To(Equal(uint64(0)))
 		})
-
 		It("should be empty", func() {
 			Expect(store.Empty()).To(BeTrue())
 		})
@@ -457,7 +480,6 @@ var _ = Describe("QuadStore", func() {
 			It("should return true", func() {
 				Expect(store.Add("s1", "p1", "o4", "")).To(BeTrue())
 			})
-
 			It("should increase the size", func() {
 				Expect(store.Size()).To(Equal(uint64(4)))
 			})
@@ -467,7 +489,6 @@ var _ = Describe("QuadStore", func() {
 			It("should return false", func() {
 				Expect(store.Add("s1", "p1", "o4", "")).To(BeFalse())
 			})
-
 			It("should not change the size", func() {
 				Expect(store.Size()).To(Equal(uint64(4)))
 			})
@@ -477,7 +498,6 @@ var _ = Describe("QuadStore", func() {
 			It("should return 1", func() {
 				Expect(store.Remove("s1", "p1", "o4", "")).To(Equal(uint64(1)))
 			})
-
 			It("should decrease the size", func() {
 				Expect(store.Size()).To(Equal(uint64(3)))
 			})
@@ -487,7 +507,6 @@ var _ = Describe("QuadStore", func() {
 			It("should return zero", func() {
 				Expect(store.Remove("s1", "p1", "o5", "")).To(Equal(uint64(0)))
 			})
-
 			It("should not change the size", func() {
 				Expect(store.Size()).To(Equal(uint64(3)))
 			})
@@ -497,7 +516,6 @@ var _ = Describe("QuadStore", func() {
 			It("should return 3", func() {
 				Expect(store.Remove("*", "*", "*", "*")).To(Equal(uint64(3)))
 			})
-
 			It("should result in an empty store", func() {
 				Expect(store.Size()).To(Equal(uint64(0)))
 			})
@@ -505,7 +523,7 @@ var _ = Describe("QuadStore", func() {
 	})
 
 	Describe("A QuadStore initialised with 5 elements", func() {
-		quads := [][4]string{
+		quads := []*Quad{
 			{"s1", "p1", "o1", ""},
 			{"s1", "p1", "o2", ""},
 			{"s1", "p2", "o2", ""},
@@ -525,9 +543,9 @@ var _ = Describe("QuadStore", func() {
 		Describe("ForEach", func() {
 
 			It("should iterate over all quads in the store", func() {
-				var resultsList [][4]string
-				store.ForEach(func(s, p, o, g string) {
-					resultsList = append(resultsList, [4]string{s, p, o, g})
+				var resultsList []*Quad
+				store.ForEach(func(s, p string, o interface{}, g string) {
+					resultsList = append(resultsList, &Quad{s, p, o, g})
 				})
 				Expect(resultsList).To(ConsistOf(quads))
 			})
@@ -537,9 +555,9 @@ var _ = Describe("QuadStore", func() {
 
 			Context("with wildcard parameters", func() {
 				It("should iterate over all quads in the store", func() {
-					var resultsList [][4]string
-					store.ForEachWith("*", "*", "*", "*", func(s, p, o, g string) {
-						resultsList = append(resultsList, [4]string{s, p, o, g})
+					var resultsList []*Quad
+					store.ForEachWith("*", "*", "*", "*", func(s, p string, o interface{}, g string) {
+						resultsList = append(resultsList, &Quad{s, p, o, g})
 					})
 					Expect(resultsList).To(ConsistOf(quads))
 				})
@@ -547,11 +565,11 @@ var _ = Describe("QuadStore", func() {
 
 			Context("with an existing subject parameter", func() {
 				It("should iterate over all quads with a matching subject", func() {
-					var resultsList [][4]string
-					store.ForEachWith("s1", "*", "*", "*", func(s, p, o, g string) {
-						resultsList = append(resultsList, [4]string{s, p, o, g})
+					var resultsList []*Quad
+					store.ForEachWith("s1", "*", "*", "*", func(s, p string, o interface{}, g string) {
+						resultsList = append(resultsList, &Quad{s, p, o, g})
 					})
-					Expect(resultsList).To(ConsistOf([][4]string{
+					Expect(resultsList).To(ConsistOf([]*Quad{
 						{"s1", "p1", "o1", ""},
 						{"s1", "p1", "o2", ""},
 						{"s1", "p2", "o2", ""},
@@ -562,9 +580,9 @@ var _ = Describe("QuadStore", func() {
 
 			Context("with an non-existing subject parameter", func() {
 				It("should do nothing", func() {
-					var resultsList [][4]string
-					store.ForEachWith("s0", "*", "*", "*", func(s, p, o, g string) {
-						resultsList = append(resultsList, [4]string{s, p, o, g})
+					var resultsList []*Quad
+					store.ForEachWith("s0", "*", "*", "*", func(s, p string, o interface{}, g string) {
+						resultsList = append(resultsList, &Quad{s, p, o, g})
 					})
 					Expect(resultsList).To(BeEmpty())
 				})
@@ -572,11 +590,11 @@ var _ = Describe("QuadStore", func() {
 
 			Context("with an existing predicate parameter", func() {
 				It("should iterate over all quads with a matching predicate", func() {
-					var resultsList [][4]string
-					store.ForEachWith("*", "p2", "*", "*", func(s, p, o, g string) {
-						resultsList = append(resultsList, [4]string{s, p, o, g})
+					var resultsList []*Quad
+					store.ForEachWith("*", "p2", "*", "*", func(s, p string, o interface{}, g string) {
+						resultsList = append(resultsList, &Quad{s, p, o, g})
 					})
-					Expect(resultsList).To(ConsistOf([][4]string{
+					Expect(resultsList).To(ConsistOf([]*Quad{
 						{"s1", "p2", "o2", ""},
 						{"s1", "p2", "o3", "c4"},
 					}))
@@ -585,9 +603,9 @@ var _ = Describe("QuadStore", func() {
 
 			Context("with an non-existing predicate parameter", func() {
 				It("should do nothing", func() {
-					var resultsList [][4]string
-					store.ForEachWith("*", "p0", "*", "*", func(s, p, o, g string) {
-						resultsList = append(resultsList, [4]string{s, p, o, g})
+					var resultsList []*Quad
+					store.ForEachWith("*", "p0", "*", "*", func(s, p string, o interface{}, g string) {
+						resultsList = append(resultsList, &Quad{s, p, o, g})
 					})
 					Expect(resultsList).To(BeEmpty())
 				})
@@ -595,11 +613,11 @@ var _ = Describe("QuadStore", func() {
 
 			Context("with an existing object parameter", func() {
 				It("should iterate over all quads with a matching object", func() {
-					var resultsList [][4]string
-					store.ForEachWith("*", "*", "o2", "*", func(s, p, o, g string) {
-						resultsList = append(resultsList, [4]string{s, p, o, g})
+					var resultsList []*Quad
+					store.ForEachWith("*", "*", "o2", "*", func(s, p string, o interface{}, g string) {
+						resultsList = append(resultsList, &Quad{s, p, o, g})
 					})
-					Expect(resultsList).To(ConsistOf([][4]string{
+					Expect(resultsList).To(ConsistOf([]*Quad{
 						{"s1", "p1", "o2", ""},
 						{"s1", "p2", "o2", ""},
 					}))
@@ -608,9 +626,9 @@ var _ = Describe("QuadStore", func() {
 
 			Context("with an non-existing object parameter", func() {
 				It("should do nothing", func() {
-					var resultsList [][4]string
-					store.ForEachWith("*", "*", "o0", "*", func(s, p, o, g string) {
-						resultsList = append(resultsList, [4]string{s, p, o, g})
+					var resultsList []*Quad
+					store.ForEachWith("*", "*", "o0", "*", func(s, p string, o interface{}, g string) {
+						resultsList = append(resultsList, &Quad{s, p, o, g})
 					})
 					Expect(resultsList).To(BeEmpty())
 				})
@@ -618,11 +636,11 @@ var _ = Describe("QuadStore", func() {
 
 			Context("with an existing graph parameter", func() {
 				It("should iterate over all quads with a matching object", func() {
-					var resultsList [][4]string
-					store.ForEachWith("*", "*", "*", "", func(s, p, o, g string) {
-						resultsList = append(resultsList, [4]string{s, p, o, g})
+					var resultsList []*Quad
+					store.ForEachWith("*", "*", "*", "", func(s, p string, o interface{}, g string) {
+						resultsList = append(resultsList, &Quad{s, p, o, g})
 					})
-					Expect(resultsList).To(ConsistOf([][4]string{
+					Expect(resultsList).To(ConsistOf([]*Quad{
 						{"s1", "p1", "o1", ""},
 						{"s1", "p1", "o2", ""},
 						{"s1", "p2", "o2", ""},
@@ -633,9 +651,9 @@ var _ = Describe("QuadStore", func() {
 
 			Context("with an non-existing graph parameter", func() {
 				It("should do nothing", func() {
-					var resultsList [][4]string
-					store.ForEachWith("*", "*", "*", "c0", func(s, p, o, g string) {
-						resultsList = append(resultsList, [4]string{s, p, o, g})
+					var resultsList []*Quad
+					store.ForEachWith("*", "*", "*", "c0", func(s, p string, o interface{}, g string) {
+						resultsList = append(resultsList, &Quad{s, p, o, g})
 					})
 					Expect(resultsList).To(BeEmpty())
 				})
@@ -1773,7 +1791,7 @@ var _ = Describe("QuadStore", func() {
 		})
 
 		Context("with a store initialised with 5 items", func() {
-			store := NewQuadStore([][4]string{
+			store := NewQuadStore([]*Quad{
 				{"s1", "p1", "o1", ""},
 				{"s1", "p1", "o2", ""},
 				{"s1", "p1", "o3", ""},
@@ -1789,7 +1807,7 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			callCount := 0
-			trueTwiceFn := func(s, p, o, g string) bool {
+			trueTwiceFn := func(s, p string, o interface{}, g string) bool {
 				callCount++
 				if callCount > 1 {
 					return false
@@ -1815,25 +1833,21 @@ var _ = Describe("QuadStore", func() {
 				Expect(store.EveryWith("*", "*", "*", "*", alwaysTrueFn)).To(BeFalse())
 				Expect(store.EveryWith("*", "*", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
-
 			It("should return false when called with a non-existing subject", func() {
 				Expect(store.Size()).To(BeZero())
 				Expect(store.EveryWith("s0", "*", "*", "*", alwaysTrueFn)).To(BeFalse())
 				Expect(store.EveryWith("s0", "*", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
-
 			It("should return false when called with a non-existing predicate", func() {
 				Expect(store.Size()).To(BeZero())
 				Expect(store.EveryWith("*", "p0", "*", "*", alwaysTrueFn)).To(BeFalse())
 				Expect(store.EveryWith("*", "p0", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
-
 			It("should return false when called with a non-existing object", func() {
 				Expect(store.Size()).To(BeZero())
 				Expect(store.EveryWith("*", "*", "o0", "*", alwaysTrueFn)).To(BeFalse())
 				Expect(store.EveryWith("*", "*", "o0", "*", alwaysFalseFn)).To(BeFalse())
 			})
-
 			It("should return false when called with a non-existing graph", func() {
 				Expect(store.Size()).To(BeZero())
 				Expect(store.EveryWith("*", "*", "*", "c0", alwaysTrueFn)).To(BeFalse())
@@ -1842,7 +1856,7 @@ var _ = Describe("QuadStore", func() {
 		})
 
 		Context("with a store initialised with 5 items", func() {
-			store := NewQuadStore([][4]string{
+			store := NewQuadStore([]*Quad{
 				{"s1", "p1", "o1", ""},
 				{"s1", "p1", "o2", ""},
 				{"s1", "p1", "o3", ""},
@@ -1858,7 +1872,7 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			callCount := 0
-			trueTwiceFn := func(s, p, o, g string) bool {
+			trueTwiceFn := func(s, p string, o interface{}, g string) bool {
 				callCount++
 				if callCount > 1 {
 					return false
@@ -1871,42 +1885,34 @@ var _ = Describe("QuadStore", func() {
 				Expect(store.EveryWith("*", "*", "*", "*", trueTwiceFn)).To(BeFalse())
 				Expect(callCount).To(Equal(2))
 			})
-
 			It("should return false when called with a non-existing subject", func() {
 				Expect(store.EveryWith("s0", "*", "*", "*", alwaysTrueFn)).To(BeFalse())
 				Expect(store.EveryWith("s0", "*", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
-
 			It("should return false when called with a non-existing subject that exists elsewhere", func() {
 				Expect(store.EveryWith("p1", "*", "*", "*", alwaysTrueFn)).To(BeFalse())
 				Expect(store.EveryWith("p1", "*", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
-
 			It("should return false when called with a non-existing predicate", func() {
 				Expect(store.EveryWith("*", "p0", "*", "*", alwaysTrueFn)).To(BeFalse())
 				Expect(store.EveryWith("*", "p0", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
-
 			It("should return false when called with a non-existing predicate that exists elsewhere", func() {
 				Expect(store.EveryWith("*", "s1", "*", "*", alwaysTrueFn)).To(BeFalse())
 				Expect(store.EveryWith("*", "s1", "*", "*", alwaysFalseFn)).To(BeFalse())
 			})
-
 			It("should return false when called with a non-existing object", func() {
 				Expect(store.EveryWith("*", "*", "o0", "*", alwaysTrueFn)).To(BeFalse())
 				Expect(store.EveryWith("*", "*", "o0", "*", alwaysFalseFn)).To(BeFalse())
 			})
-
 			It("should return false when called with a non-existing object that exists elsewhere", func() {
 				Expect(store.EveryWith("*", "*", "p1", "*", alwaysTrueFn)).To(BeFalse())
 				Expect(store.EveryWith("*", "*", "p1", "*", alwaysFalseFn)).To(BeFalse())
 			})
-
 			It("should return false when called with a non-existing graph", func() {
 				Expect(store.EveryWith("*", "*", "*", "c0", alwaysTrueFn)).To(BeFalse())
 				Expect(store.EveryWith("*", "*", "*", "c0", alwaysTrueFn)).To(BeFalse())
 			})
-
 			It("should return false when called with a non-existing graph that exists elsewhere", func() {
 				Expect(store.EveryWith("*", "*", "*", "s1", alwaysTrueFn)).To(BeFalse())
 				Expect(store.EveryWith("*", "*", "*", "s1", alwaysTrueFn)).To(BeFalse())
@@ -1924,7 +1930,7 @@ var _ = Describe("QuadStore", func() {
 		})
 
 		Context("with a store initialised with 5 items", func() {
-			store := NewQuadStore([][4]string{
+			store := NewQuadStore([]*Quad{
 				{"s1", "p1", "o1", ""},
 				{"s1", "p1", "o2", ""},
 				{"s1", "p1", "o3", ""},
@@ -1937,7 +1943,7 @@ var _ = Describe("QuadStore", func() {
 			})
 
 			callCount := 0
-			falseTwiceFn := func(s, p, o, g string) bool {
+			falseTwiceFn := func(s, p string, o interface{}, g string) bool {
 				callCount++
 				if callCount > 1 {
 					return true
@@ -1955,7 +1961,7 @@ var _ = Describe("QuadStore", func() {
 
 	Describe("Query", func() {
 
-		store := NewQuadStore([][4]string{
+		store := NewQuadStore([]*Quad{
 			{"s1", "p1", "o1", ""},
 			{"s1", "p1", "o2", ""},
 			{"s1", "p2", "o2", ""},
@@ -2030,8 +2036,9 @@ var _ = Describe("QuadStore", func() {
 		store := NewQuadStore()
 
 		It("should be called when adding a quad", func() {
-			var subject, predicate, object, graph string
-			store.OnAdd = func(s, p, o, g string) {
+			var subject, predicate, graph string
+			var object interface{}
+			store.OnAdd = func(s, p string, o interface{}, g string) {
 				subject = s
 				predicate = p
 				object = o
@@ -2043,10 +2050,9 @@ var _ = Describe("QuadStore", func() {
 			Expect(object).To(Equal("o1"))
 			Expect(graph).To(Equal("g1"))
 		})
-
 		It("should not be called when adding an already existing quad", func() {
 			count := 0
-			store.OnAdd = func(s, p, o, g string) {
+			store.OnAdd = func(s, p string, o interface{}, g string) {
 				count++
 			}
 			store.Add("s1", "p1", "o1", "g1")
@@ -2056,7 +2062,7 @@ var _ = Describe("QuadStore", func() {
 
 	Describe("OnRemove", func() {
 
-		store := NewQuadStore([][4]string{
+		store := NewQuadStore([]*Quad{
 			{"s1", "p1", "o1", ""},
 			{"s1", "p1", "o2", ""},
 			{"s1", "p2", "o2", ""},
@@ -2065,8 +2071,9 @@ var _ = Describe("QuadStore", func() {
 		})
 
 		It("should be called when removing a quad", func() {
-			var subject, predicate, object, graph string
-			store.OnRemove = func(s, p, o, g string) {
+			var subject, predicate, graph string
+			var object interface{}
+			store.OnRemove = func(s, p string, o interface{}, g string) {
 				subject = s
 				predicate = p
 				object = o
@@ -2078,10 +2085,9 @@ var _ = Describe("QuadStore", func() {
 			Expect(object).To(Equal("o1"))
 			Expect(graph).To(Equal(""))
 		})
-
 		It("should be called when removing multiple quads", func() {
 			count := 0
-			store.OnRemove = func(s, p, o, g string) {
+			store.OnRemove = func(s, p string, o interface{}, g string) {
 				count++
 			}
 			store.Remove("s1", "*", "*", "")

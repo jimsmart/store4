@@ -7,6 +7,14 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+type Tuple struct {
+	P string
+	O interface{}
+}
+
+func (t Tuple) Predicate() string   { return t.P }
+func (t Tuple) Object() interface{} { return t.O }
+
 var _ = Describe("SubjectView", func() {
 
 	Describe("Creating a single SubjectView from a QuadStore", func() {

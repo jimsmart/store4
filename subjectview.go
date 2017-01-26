@@ -10,14 +10,14 @@ import (
 // callback functions that receive a tuple.
 //
 // Used with calls to SubjectView's ForEach and ForEachWith.
-type TupleCallbackFn func(p, o string)
+type TupleCallbackFn func(p string, o interface{})
 
 // TupleTestFn is the function signature used to implement
 // callback functions performing tuple tests.
 // A response of true means that the test has been passed.
 //
 // Used with calls to SubjectView's Every, EveryWith, Some and SomeWith.
-type TupleTestFn func(p, o string) bool
+type TupleTestFn func(p string, o interface{}) bool
 
 // SubjectView provides a subject-centric API
 // for working with predicate-object (property/value) tuples.
@@ -48,7 +48,7 @@ func (s *QuadStore) SubjectView(subject, graph string) *SubjectView {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (s *QuadStore) SubjectViews(predicate, object, graph string) []*SubjectView {
+func (s *QuadStore) SubjectViews(predicate string, object interface{}, graph string) []*SubjectView {
 	var out []*SubjectView
 	s.ForSubjects(predicate, object, graph, func(subject string) {
 		p := &SubjectView{
@@ -110,7 +110,7 @@ func (s *QuadStore) Query(pattern interface{}, graph string) []*SubjectView {
 		return nil
 	}
 
-	haltFn := func(s, p, o, g string) bool {
+	haltFn := func(s, p string, o interface{}, g string) bool {
 		return true
 	}
 
@@ -147,8 +147,8 @@ func (g *GraphView) Query(pattern interface{}) []*SubjectView {
 
 // Map returns a 'property/value' map containing the predicate terms for
 // the SubjectView's subject, mapped to their corresponding object terms.
-func (v *SubjectView) Map() map[string][]string {
-	m := make(map[string][]string)
+func (v *SubjectView) Map() map[string][]interface{} {
+	m := make(map[string][]interface{})
 	v.ForPredicates("*", func(predicate string) {
 		m[predicate] = v.FindObjects(predicate)
 	})
@@ -164,7 +164,7 @@ func (v *SubjectView) Map() map[string][]string {
 // If any of the given terms are "*" (an asterisk),
 // then this method will panic. (The asterisk is reserved
 // for wildcard operations throughout the API).
-func (v *SubjectView) Add(predicate, object string) bool {
+func (v *SubjectView) Add(predicate string, object interface{}) bool {
 	return v.QuadStore.Add(v.Subject, predicate, object, v.Graph)
 }
 
@@ -172,12 +172,12 @@ func (v *SubjectView) Add(predicate, object string) bool {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (v *SubjectView) Count(predicate, object string) uint64 {
+func (v *SubjectView) Count(predicate string, object interface{}) uint64 {
 	return v.QuadStore.Count(v.Subject, predicate, object, v.Graph)
 }
 
 func (v *SubjectView) Empty() bool {
-	haltFn := func(s, p, o, g string) bool {
+	haltFn := func(s, p string, o interface{}, g string) bool {
 		return true
 	}
 	return !v.QuadStore.SomeWith(v.Subject, "*", "*", v.Graph, haltFn)
@@ -215,7 +215,7 @@ func (v *SubjectView) Every(fn TupleTestFn) bool {
 // then EveryWith returns false. Note that this differs from
 // the interpretation of 'every' in some other languages,
 // which may return true for an empty iteration set.
-func (v *SubjectView) EveryWith(predicate, object string, fn TupleTestFn) bool {
+func (v *SubjectView) EveryWith(predicate string, object interface{}, fn TupleTestFn) bool {
 	return v.QuadStore.EveryWith(v.Subject, predicate, object, v.Graph, adaptTupleTestFn(fn))
 }
 
@@ -224,7 +224,7 @@ func (v *SubjectView) EveryWith(predicate, object string, fn TupleTestFn) bool {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (v *SubjectView) FindObjects(predicate string) []string {
+func (v *SubjectView) FindObjects(predicate string) []interface{} {
 	return v.QuadStore.FindObjects(v.Subject, predicate, v.Graph)
 }
 
@@ -233,7 +233,7 @@ func (v *SubjectView) FindObjects(predicate string) []string {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (v *SubjectView) FindPredicates(object string) []string {
+func (v *SubjectView) FindPredicates(object interface{}) []string {
 	return v.QuadStore.FindPredicates(v.Subject, object, v.Graph)
 }
 
@@ -247,7 +247,7 @@ func (v *SubjectView) ForEach(fn TupleCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (v *SubjectView) ForEachWith(predicate, object string, fn TupleCallbackFn) {
+func (v *SubjectView) ForEachWith(predicate string, object interface{}, fn TupleCallbackFn) {
 	v.QuadStore.ForEachWith(v.Subject, predicate, object, v.Graph, adaptTupleCallbackFn(fn))
 }
 
@@ -256,7 +256,7 @@ func (v *SubjectView) ForEachWith(predicate, object string, fn TupleCallbackFn) 
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (v *SubjectView) ForObjects(predicate string, fn StringCallbackFn) {
+func (v *SubjectView) ForObjects(predicate string, fn ObjectCallbackFn) {
 	v.QuadStore.ForObjects(v.Subject, predicate, v.Graph, fn)
 }
 
@@ -265,7 +265,7 @@ func (v *SubjectView) ForObjects(predicate string, fn StringCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (v *SubjectView) ForPredicates(object string, fn StringCallbackFn) {
+func (v *SubjectView) ForPredicates(object interface{}, fn StringCallbackFn) {
 	v.QuadStore.ForPredicates(v.Subject, object, v.Graph, fn)
 }
 
@@ -276,7 +276,7 @@ func (v *SubjectView) ForPredicates(object string, fn StringCallbackFn) {
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
-func (v *SubjectView) Remove(predicate, object string) uint64 {
+func (v *SubjectView) Remove(predicate string, object interface{}) uint64 {
 	return v.QuadStore.Remove(v.Subject, predicate, object, v.Graph)
 }
 
@@ -307,7 +307,7 @@ func (v *SubjectView) Some(fn TupleTestFn) bool {
 // an element is found, iteration is immediately halted and
 // SomeWith returns true. Otherwise, if the callback returns
 // false for all tuples, then SomeWith returns false.
-func (v *SubjectView) SomeWith(predicate, object string, fn TupleTestFn) bool {
+func (v *SubjectView) SomeWith(predicate string, object interface{}, fn TupleTestFn) bool {
 	return v.QuadStore.SomeWith(v.Subject, predicate, object, v.Graph, adaptTupleTestFn(fn))
 }
 
@@ -325,12 +325,12 @@ func (v *SubjectView) String() string {
 	sort.Strings(predicates)
 	for _, predicate := range predicates {
 		objects := v.FindObjects(predicate)
-		sort.Strings(objects)
+		sortObjects(objects)
 		for _, object := range objects {
 			buf.WriteByte('[')
 			buf.WriteString(predicate)
 			buf.WriteByte(' ')
-			buf.WriteString(object)
+			buf.WriteString(fmt.Sprint(object))
 			buf.WriteByte(']')
 			buf.WriteByte('\n')
 		}
@@ -339,13 +339,13 @@ func (v *SubjectView) String() string {
 }
 
 func adaptTupleCallbackFn(fn TupleCallbackFn) QuadCallbackFn {
-	return func(s, p, o, g string) {
+	return func(s, p string, o interface{}, g string) {
 		fn(p, o)
 	}
 }
 
 func adaptTupleTestFn(fn TupleTestFn) QuadTestFn {
-	return func(s, p, o, g string) bool {
+	return func(s, p string, o interface{}, g string) bool {
 		return fn(p, o)
 	}
 }

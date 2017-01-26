@@ -275,7 +275,7 @@ func ExampleSubjectView_Every() {
 	v1 := s.SubjectView("s1", "g1")
 	v2 := s.SubjectView("s2", "g2")
 
-	p1TestFn := func(p, o string) bool {
+	p1TestFn := func(p string, o interface{}) bool {
 		return p == "p1"
 	}
 
@@ -314,7 +314,7 @@ func ExampleSubjectView_EveryWith() {
 	v1 := s.SubjectView("s1", "g1")
 	v2 := s.SubjectView("s2", "g2")
 
-	o2TestFn := func(p, o string) bool {
+	o2TestFn := func(p string, o interface{}) bool {
 		return p == "o2"
 	}
 
@@ -388,13 +388,13 @@ func ExampleSubjectView_FindObjects() {
 	results := v1.FindObjects("*")
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	sort.Strings(results)
+	SortObjects(results)
 	fmt.Println(results)
 
 	// Find objects in the SubjectView
 	// that have predicate p2.
 	results = v1.FindObjects("p2")
-	sort.Strings(results)
+	SortObjects(results)
 	fmt.Println(results)
 
 	// Output:
@@ -414,7 +414,7 @@ func ExampleSubjectView_ForEach() {
 
 	// Iterate over all predicate-object tuples
 	// in the SubjectView for subject s2 in graph g1.
-	v.ForEach(func(p, o string) {
+	v.ForEach(func(p string, o interface{}) {
 		fmt.Println(p, o)
 	})
 
@@ -435,7 +435,7 @@ func ExampleSubjectView_ForEachWith() {
 	// Iterate over all predicate-object tuples
 	// that have predicate p1
 	// for the SubjectView of subject s1 in graph g1.
-	v.ForEachWith("p1", "*", func(p, o string) {
+	v.ForEachWith("p1", "*", func(p string, o interface{}) {
 		fmt.Println(p, o)
 	})
 
@@ -493,23 +493,23 @@ func ExampleSubjectView_ForObjects() {
 
 	v := s.SubjectView("s1", "g1")
 
-	var results1 []string
+	var results1 []interface{}
 	// Iterate over all objects for subject s1 in graph g1.
-	v.ForObjects("*", func(o string) {
+	v.ForObjects("*", func(o interface{}) {
 		results1 = append(results1, o)
 	})
 	// (We only sort the results before printing
 	// because iteration order is unstable)
-	sort.Strings(results1)
+	SortObjects(results1)
 	fmt.Println(results1)
 
-	var results2 []string
+	var results2 []interface{}
 	// Iterate over objects for subject s1 in graph g1
 	// that have predicate p2.
-	v.ForObjects("p2", func(o string) {
+	v.ForObjects("p2", func(o interface{}) {
 		results2 = append(results2, o)
 	})
-	sort.Strings(results2)
+	SortObjects(results2)
 	fmt.Println(results2)
 
 	// Output:
@@ -586,7 +586,7 @@ func ExampleSubjectView_Some() {
 	v1 := s.SubjectView("s1", "g1")
 	v2 := s.SubjectView("s2", "*")
 
-	o1TestFn := func(p, o string) bool {
+	o1TestFn := func(p string, o interface{}) bool {
 		return o == "o1"
 	}
 
@@ -613,7 +613,7 @@ func ExampleSubjectView_SomeWith() {
 		{"s3", "p3", "o3", "g2"},
 	})
 
-	alwaysTrueFn := func(p, o string) bool {
+	alwaysTrueFn := func(p string, o interface{}) bool {
 		return true
 	}
 

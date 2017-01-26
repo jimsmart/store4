@@ -7,6 +7,16 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+type Triple struct {
+	S string
+	P string
+	O interface{}
+}
+
+func (t Triple) Subject() string     { return t.S }
+func (t Triple) Predicate() string   { return t.P }
+func (t Triple) Object() interface{} { return t.O }
+
 var _ = Describe("GraphView", func() {
 
 	Describe("Creating a new GraphView", func() {
@@ -25,11 +35,11 @@ var _ = Describe("GraphView", func() {
 			})
 
 			It("should contain the correct triples", func() {
-				var resultsList [][3]string
-				graph.ForEach(func(s, p, o string) {
-					resultsList = append(resultsList, [3]string{s, p, o})
+				var resultsList []*Triple
+				graph.ForEach(func(s, p string, o interface{}) {
+					resultsList = append(resultsList, &Triple{s, p, o})
 				})
-				Expect(resultsList).To(ConsistOf([][3]string{
+				Expect(resultsList).To(ConsistOf([]*Triple{
 					{"s1", "p1", "o1"},
 					{"s1", "p1", "o2"},
 					{"s1", "p2", "o2"},
@@ -47,11 +57,11 @@ var _ = Describe("GraphView", func() {
 			})
 
 			It("should contain the correct triple", func() {
-				var resultsList [][3]string
-				graph.ForEach(func(s, p, o string) {
-					resultsList = append(resultsList, [3]string{s, p, o})
+				var resultsList []*Triple
+				graph.ForEach(func(s, p string, o interface{}) {
+					resultsList = append(resultsList, &Triple{s, p, o})
 				})
-				Expect(resultsList).To(ConsistOf([][3]string{
+				Expect(resultsList).To(ConsistOf([]*Triple{
 					{"s1", "p1", "o1"},
 				}))
 			})
