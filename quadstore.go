@@ -64,7 +64,7 @@ type QuadStore struct {
 	// graphs hold the store's graphs.
 	graphs graphMap
 
-	strMan *stringManager
+	pool *pool
 }
 
 // graphMap is a map holding the store's graphs, keyed by graph name.
@@ -134,7 +134,7 @@ type indexLeaf map[uint64]struct{}
 func NewQuadStore(args ...interface{}) *QuadStore {
 	s := &QuadStore{
 		graphs: make(map[string]*indexedGraph),
-		strMan: newStringManager(),
+		pool:   newPool(),
 	}
 	// Initialise store with any given data.
 	for _, arg := range args {
@@ -251,14 +251,6 @@ func initWithReflection(s *QuadStore, arg interface{}) {
 			}
 			return
 		}
-		// if addQuadFromInterfaces(s, iface) {
-		// 	for i := 1; i < length; i++ {
-		// 		el = val.Index(i)
-		// 		iface = el.Interface()
-		// 		addQuadFromInterfaces(s, iface)
-		// 	}
-		// 	return
-		// }
 	}
 	panic(fmt.Sprintf("unexpected type %T\n", arg))
 }
@@ -355,10 +347,9 @@ func (s *QuadStore) Add(subject, predicate string, object interface{}, graph str
 		s.graphs[graph] = g
 	}
 	// Get internal IDs for each term.
-	getOrCreateID := s.strMan.getOrCreateID
-	sid := getOrCreateID(subject)
-	pid := getOrCreateID(predicate)
-	oid := getOrCreateID(object)
+	sid := s.pool.getOrCreateIDString(subject)
+	pid := s.pool.getOrCreateIDString(predicate)
+	oid := s.pool.getOrCreateIDAny(object)
 	// Disallow wildcard terms.
 	// Optimisation: the fast path (only path) is that terms will not be
 	// the wildcard, so we avoid three extra string compares earlier in
@@ -369,10 +360,9 @@ func (s *QuadStore) Add(subject, predicate string, object interface{}, graph str
 	// Add triple to all indexes.
 	if !addToIndex(g.spoIndex, sid, pid, oid) {
 		// Already existed.
-		releaseRef := s.strMan.releaseRef
-		releaseRef(sid)
-		releaseRef(pid)
-		releaseRef(oid)
+		s.pool.releaseRefString(sid)
+		s.pool.releaseRefString(pid)
+		s.pool.releaseRefAny(oid)
 		return false
 	}
 	addToIndex(g.posIndex, pid, oid, sid)
@@ -407,33 +397,15 @@ func addToIndex(index0 indexRoot, key0, key1, key2 uint64) bool {
 	return !exists
 }
 
-// // getOrCreateID returns an internal ID for a given term.
-// // If no existing ID is present, it creates a new one.
-// // For any existing term, it also increments the reference count.
-// func (s *QuadStore) getOrCreateID(term string) uint64 {
-// 	return s.strMan.getOrCreateID(term)
-// }
-
-// // releaseRef decrements a term's reference count.
-// // When a term is no longer referenced, it is removed
-// // from all maps.
-// // The given id must exist or releaseRef will aspolde.
-// func (s *QuadStore) releaseRef(id uint64) {
-// 	s.strMan.releaseRef(id)
-// }
-
 // Removes quads from the store. Returns the number of quads removed.
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
 func (s *QuadStore) Remove(subject, predicate string, object interface{}, graph string) uint64 {
-	termToID := s.strMan.stringToID
-	idToTerm := s.strMan.idToString
-	graphs := s.graphs
 	// Find internal identifiers for terms.
-	sid, sok := termToID(subject)
-	pid, pok := termToID(predicate)
-	oid, ook := termToID(object)
+	sid, sok := s.pool.stringToID(subject)
+	pid, pok := s.pool.stringToID(predicate)
+	oid, ook := s.pool.anyToID(object)
 	// If any of the terms don't exist, then there are no matches.
 	if !sok || !pok || !ook {
 		return 0
@@ -462,19 +434,18 @@ func (s *QuadStore) Remove(subject, predicate string, object interface{}, graph 
 	}
 
 	var count uint64
-	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
+	s.graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 
 		// This is only called while processing the SPO index.
 		removeFn := func(sid, pid, oid uint64) {
 			s.size--
 			g.size--
 			if s.OnRemove != nil {
-				s.OnRemove(idToTerm(sid), idToTerm(pid), idToTerm(oid), graph)
+				s.OnRemove(s.pool.idToString(sid), s.pool.idToString(pid), s.pool.idToAny(oid), graph)
 			}
-			releaseRef := s.strMan.releaseRef
-			releaseRef(sid)
-			releaseRef(pid)
-			releaseRef(oid)
+			s.pool.releaseRefString(sid)
+			s.pool.releaseRefString(pid)
+			s.pool.releaseRefAny(oid)
 			count++
 		}
 
@@ -484,7 +455,7 @@ func (s *QuadStore) Remove(subject, predicate string, object interface{}, graph 
 		removeFromIndex(g.spoIndex, sid, pid, oid, removeFn)
 		// Cleanup empty graphs.
 		if g.size == 0 {
-			delete(graphs, graph)
+			delete(s.graphs, graph)
 		}
 	})
 	return count
@@ -576,19 +547,17 @@ func (idx indexLeaf) forEachMatch(query uint64, fn func(key uint64)) {
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
 func (s *QuadStore) Count(subject, predicate string, object interface{}, graph string) uint64 {
-	termToID := s.strMan.stringToID
-	graphs := s.graphs
 	// Find internal identifiers for terms.
-	sid, sok := termToID(subject)
-	pid, pok := termToID(predicate)
-	oid, ook := termToID(object)
+	sid, sok := s.pool.stringToID(subject)
+	pid, pok := s.pool.stringToID(predicate)
+	oid, ook := s.pool.anyToID(object)
 	// If any of the terms don't exist, then there are no matches.
 	if !sok || !pok || !ook {
 		return 0
 	}
 
 	var count uint64
-	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
+	s.graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 		// Choose the optimal index, based on which fields are wildcards.
 		if sid != 0 {
 			if oid != 0 {
@@ -730,12 +699,10 @@ const (
 // SomeWith returns true. Otherwise, if the callback returns
 // false for all quads, then SomeWith returns false.
 func (s *QuadStore) SomeWith(subject, predicate string, object interface{}, graph string, fn QuadTestFn) bool {
-	termToID := s.strMan.stringToID
-	graphs := s.graphs
 	// Find internal identifiers for terms.
-	sid, sok := termToID(subject)
-	pid, pok := termToID(predicate)
-	oid, ook := termToID(object)
+	sid, sok := s.pool.stringToID(subject)
+	pid, pok := s.pool.stringToID(predicate)
+	oid, ook := s.pool.anyToID(object)
 	// If any of the terms don't exist, then there are no matches.
 	if !sok || !pok || !ook {
 		return false
@@ -752,7 +719,7 @@ func (s *QuadStore) SomeWith(subject, predicate string, object interface{}, grap
 	// 	flags |= 1
 	// }
 
-	return graphs.someMatch(graph, func(graph string, g *indexedGraph) bool {
+	return s.graphs.someMatch(graph, func(graph string, g *indexedGraph) bool {
 
 		// fns := [8]func() bool{
 		// 	// s = z : p = z : o = z
@@ -824,19 +791,17 @@ func (s *QuadStore) SomeWith(subject, predicate string, object interface{}, grap
 }
 
 func indexSomeGivenNoKeys(index0 indexRoot, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {
-	idToTerm := s.strMan.idToString
-	var q [4]string // spog quad
-	q[3] = g
+	var t [3]interface{} // spo triple
 	// Loop.
 	for key0, index1 := range index0 {
-		q[idx0] = idToTerm(key0)
+		t[idx0] = s.pool.idToAny(key0)
 		// Loop.
 		for key1, index2 := range index1 {
-			q[idx1] = idToTerm(key1)
+			t[idx1] = s.pool.idToAny(key1)
 			// Loop.
 			for key2, _ := range index2 {
-				q[idx2] = idToTerm(key2)
-				if fn(q[0], q[1], q[2], q[3]) {
+				t[idx2] = s.pool.idToAny(key2)
+				if fn(t[0].(string), t[1].(string), t[2], g) {
 					return true
 				}
 			}
@@ -846,22 +811,20 @@ func indexSomeGivenNoKeys(index0 indexRoot, idx0, idx1, idx2 int, g string, s *Q
 }
 
 func indexSomeGivenKey0(index0 indexRoot, key0 uint64, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {
-	idToTerm := s.strMan.idToString
-	var q [4]string // spog quad
-	q[3] = g
+	var t [3]interface{} // spo triple
 	// Lookup.
 	index1, ok := index0[key0]
 	if !ok {
 		return false
 	}
-	q[idx0] = idToTerm(key0)
+	t[idx0] = s.pool.idToAny(key0)
 	// Loop.
 	for key1, index2 := range index1 {
-		q[idx1] = idToTerm(key1)
+		t[idx1] = s.pool.idToAny(key1)
 		// Loop.
 		for key2, _ := range index2 {
-			q[idx2] = idToTerm(key2)
-			if fn(q[0], q[1], q[2], q[3]) {
+			t[idx2] = s.pool.idToAny(key2)
+			if fn(t[0].(string), t[1].(string), t[2], g) {
 				return true
 			}
 		}
@@ -870,25 +833,23 @@ func indexSomeGivenKey0(index0 indexRoot, key0 uint64, idx0, idx1, idx2 int, g s
 }
 
 func indexSomeGivenKey0And1(index0 indexRoot, key0, key1 uint64, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {
-	idToTerm := s.strMan.idToString
-	var q [4]string // spog quad
-	q[3] = g
+	var t [3]interface{} // spo triple
 	// Lookup.
 	index1, ok := index0[key0]
 	if !ok {
 		return false
 	}
-	q[idx0] = idToTerm(key0)
+	t[idx0] = s.pool.idToAny(key0)
 	// Lookup.
 	index2, ok := index1[key1]
 	if !ok {
 		return false
 	}
-	q[idx1] = idToTerm(key1)
+	t[idx1] = s.pool.idToAny(key1)
 	// Loop.
 	for key2, _ := range index2 {
-		q[idx2] = idToTerm(key2)
-		if fn(q[0], q[1], q[2], q[3]) {
+		t[idx2] = s.pool.idToAny(key2)
+		if fn(t[0].(string), t[1].(string), t[2], g) {
 			return true
 		}
 	}
@@ -896,28 +857,26 @@ func indexSomeGivenKey0And1(index0 indexRoot, key0, key1 uint64, idx0, idx1, idx
 }
 
 func indexSomeGivenAllKeys(index0 indexRoot, key0, key1, key2 uint64, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {
-	idToTerm := s.strMan.idToString
-	var q [4]string // spog quad
-	q[3] = g
+	var t [3]interface{} // spo triple
 	// Lookup.
 	index1, ok := index0[key0]
 	if !ok {
 		return false
 	}
-	q[idx0] = idToTerm(key0)
+	t[idx0] = s.pool.idToAny(key0)
 	// Lookup.
 	index2, ok := index1[key1]
 	if !ok {
 		return false
 	}
-	q[idx1] = idToTerm(key1)
+	t[idx1] = s.pool.idToAny(key1)
 	// Lookup.
 	_, ok = index2[key2]
 	if !ok {
 		return false
 	}
-	q[idx2] = idToTerm(key2)
-	return fn(q[0], q[1], q[2], q[3])
+	t[idx2] = s.pool.idToAny(key2)
+	return fn(t[0].(string), t[1].(string), t[2], g)
 }
 
 // FindGraphs returns a list of distinct graph names for all quads in the store that match the given pattern.
@@ -967,12 +926,9 @@ func (s *QuadStore) FindSubjects(predicate string, object interface{}, graph str
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
 func (s *QuadStore) ForSubjects(predicate string, object interface{}, graph string, fn StringCallbackFn) {
-	termToID := s.strMan.stringToID
-	idToTerm := s.strMan.idToString
-	graphs := s.graphs
 	// Find internal identifiers for terms.
-	pid, pok := termToID(predicate)
-	oid, ook := termToID(object)
+	pid, pok := s.pool.stringToID(predicate)
+	oid, ook := s.pool.anyToID(object)
 	// If any of the terms don't exist, then there are no matches.
 	if !pok || !ook {
 		return
@@ -984,11 +940,11 @@ func (s *QuadStore) ForSubjects(predicate string, object interface{}, graph stri
 		_, ok := seen[id]
 		if !ok {
 			seen[id] = struct{}{}
-			fn(idToTerm(id))
+			fn(s.pool.idToString(id))
 		}
 	}
 
-	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
+	s.graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 		// We want to list all subjects.
 		// The three index choices are: SPO POS OSP
 
@@ -1035,12 +991,9 @@ func (s *QuadStore) FindPredicates(subject string, object interface{}, graph str
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
 func (s *QuadStore) ForPredicates(subject string, object interface{}, graph string, fn StringCallbackFn) {
-	termToID := s.strMan.stringToID
-	idToTerm := s.strMan.idToString
-	graphs := s.graphs
 	// Find internal identifiers for terms.
-	sid, sok := termToID(subject)
-	oid, ook := termToID(object)
+	sid, sok := s.pool.stringToID(subject)
+	oid, ook := s.pool.anyToID(object)
 	// If any of the terms don't exist, then there are no matches.
 	if !sok || !ook {
 		return
@@ -1052,11 +1005,11 @@ func (s *QuadStore) ForPredicates(subject string, object interface{}, graph stri
 		_, ok := seen[id]
 		if !ok {
 			seen[id] = struct{}{}
-			fn(idToTerm(id))
+			fn(s.pool.idToString(id))
 		}
 	}
 
-	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
+	s.graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 		// We want to list all predicates.
 		// The three index choices are: SPO POS OSP
 
@@ -1103,12 +1056,9 @@ func (s *QuadStore) FindObjects(subject, predicate, graph string) []interface{} 
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
 func (s *QuadStore) ForObjects(subject, predicate, graph string, fn ObjectCallbackFn) {
-	termToID := s.strMan.stringToID
-	idToTerm := s.strMan.idToString
-	graphs := s.graphs
 	// Find internal identifiers for terms.
-	sid, sok := termToID(subject)
-	pid, pok := termToID(predicate)
+	sid, sok := s.pool.stringToID(subject)
+	pid, pok := s.pool.stringToID(predicate)
 	// If any of the terms don't exist, then there are no matches.
 	if !sok || !pok {
 		return
@@ -1120,11 +1070,11 @@ func (s *QuadStore) ForObjects(subject, predicate, graph string, fn ObjectCallba
 		_, ok := seen[id]
 		if !ok {
 			seen[id] = struct{}{}
-			fn(idToTerm(id))
+			fn(s.pool.idToAny(id))
 		}
 	}
 
-	graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
+	s.graphs.forEachMatch(graph, func(graph string, g *indexedGraph) {
 		// We want to list all objects.
 		// The three index choices are: SPO POS OSP
 
