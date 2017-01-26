@@ -340,7 +340,7 @@ func (s *QuadStore) Add(subject, predicate, object, graph string) bool {
 	}
 	// Add triple to all indexes.
 	if !addToIndex(g.spoIndex, sid, pid, oid) {
-		// Already exists.
+		// Already existed.
 		releaseRef := s.strMan.releaseRef
 		releaseRef(sid)
 		releaseRef(pid)
