@@ -46,15 +46,15 @@ func (b boxedQuad2) P() string      { return b.p }
 func (b boxedQuad2) O() interface{} { return b.o }
 func (b boxedQuad2) G() string      { return b.g }
 
-var _ = Describe("QuadStore", func() {
+func iterResults(store *QuadStore) []*Quad {
+	var resultsList []*Quad
+	store.ForEach(func(s, p string, o interface{}, g string) {
+		resultsList = append(resultsList, &Quad{s, p, o, g})
+	})
+	return resultsList
+}
 
-	iterResults := func(store *QuadStore) []*Quad {
-		var resultsList []*Quad
-		store.ForEach(func(s, p string, o interface{}, g string) {
-			resultsList = append(resultsList, &Quad{s, p, o, g})
-		})
-		return resultsList
-	}
+var _ = Describe("QuadStore", func() {
 
 	Describe("Creating a new QuadStore", func() {
 
