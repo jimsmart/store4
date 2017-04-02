@@ -41,6 +41,25 @@ var _ = Describe("Builder", func() {
 		})
 	})
 
-	// TODO(js) Test 3x panic condiions in Add
+	Describe("Error conditions", func() {
+		It("should panic if the subject is missing", func() {
+			b := &Builder{}
+			b.Graph("g1")
+			// b.Subject("s1")
+			Expect(func() { b.Add("p1", "o1") }).To(Panic())
+		})
+		It("should panic if the predicate is missing", func() {
+			b := &Builder{}
+			b.Graph("g1")
+			b.Subject("s1")
+			Expect(func() { b.Add("", "o1") }).To(Panic())
+		})
+		It("should panic if the object is missing", func() {
+			b := &Builder{}
+			b.Graph("g1")
+			b.Subject("s1")
+			Expect(func() { b.Add("p1", nil) }).To(Panic())
+		})
+	})
 
 })
