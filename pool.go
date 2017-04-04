@@ -7,6 +7,7 @@ type pool struct {
 	idToStrInfo map[uint64]*strInfo
 	// nextStrID holds the next string ID to issue.
 	nextStrID uint64
+
 	// itemToID maps non-string items to IDs.
 	itemToID map[interface{}]uint64
 	// idToItemInfo maps IDs to item info.
@@ -38,7 +39,7 @@ type strInfo struct {
 	refCount uint64 // Reference count.
 }
 
-// ifaceInfo holds details for each non-string.
+// itemInfo holds details for each non-string.
 type itemInfo struct {
 	item     interface{} // The item itself.
 	refCount uint64      // Reference count.

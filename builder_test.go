@@ -30,7 +30,7 @@ var _ = Describe("Builder", func() {
 			Subject("s3").
 			Add("p4", "o4")
 		store := b.Build()
-		It("should return the correct quads", func() {
+		It("should return a store containing the correct quads", func() {
 			resultsList := iterResults(store)
 			Expect(resultsList).To(ConsistOf([]*Quad{
 				{"s1", "p1", "o1", "g1"},
@@ -42,23 +42,25 @@ var _ = Describe("Builder", func() {
 	})
 
 	Describe("Error conditions", func() {
-		It("should panic if the subject is missing", func() {
-			b := &Builder{}
-			b.Graph("g1")
-			// b.Subject("s1")
-			Expect(func() { b.Add("p1", "o1") }).To(Panic())
-		})
-		It("should panic if the predicate is missing", func() {
-			b := &Builder{}
-			b.Graph("g1")
-			b.Subject("s1")
-			Expect(func() { b.Add("", "o1") }).To(Panic())
-		})
-		It("should panic if the object is missing", func() {
-			b := &Builder{}
-			b.Graph("g1")
-			b.Subject("s1")
-			Expect(func() { b.Add("p1", nil) }).To(Panic())
+		Context("Add", func() {
+			It("should panic if the subject is missing", func() {
+				b := &Builder{}
+				b.Graph("g1")
+				// b.Subject("s1")
+				Expect(func() { b.Add("p1", "o1") }).To(Panic())
+			})
+			It("should panic if the predicate is missing", func() {
+				b := &Builder{}
+				b.Graph("g1")
+				b.Subject("s1")
+				Expect(func() { b.Add("", "o1") }).To(Panic())
+			})
+			It("should panic if the object is missing", func() {
+				b := &Builder{}
+				b.Graph("g1")
+				b.Subject("s1")
+				Expect(func() { b.Add("p1", nil) }).To(Panic())
+			})
 		})
 	})
 
