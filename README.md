@@ -46,7 +46,7 @@ s.ForEachWith("*", "*", "Bob", "*", func(s, p string, o interface{}, g string) {
 })
 
 // Remove all statements about Charlie, from all graphs.
-s.Remove("Charlie", "*", "Charlie", "*")
+s.Remove("Charlie", "*", "*", "*")
 ```
 
 See GoDocs for more detailed examples.
