@@ -38,7 +38,7 @@ type ObjectCallbackFn func(o interface{})
 //
 // If provided, the OnAdd callback will be called once for every quad
 // added to the store with the Add method. It is called once per quad,
-// after each quad has succesfully been added to the store. It is not
+// after each quad has successfully been added to the store. It is not
 // called if the added quad already existed in the store. Note that
 // when the callback is invoked, the store size will already have been
 // incremented, and all internal indexes will be in a
@@ -530,7 +530,7 @@ func (idx indexLeaf) forEachMatch(query uint64, fn func(key uint64)) {
 	// Either loop over all elements, or over just one selected element.
 	if query == 0 {
 		// All elements.
-		for key, _ := range idx {
+		for key := range idx {
 			fn(key)
 		}
 	} else {
@@ -799,7 +799,7 @@ func indexSomeGivenNoKeys(index0 indexRoot, idx0, idx1, idx2 int, g string, s *Q
 		for key1, index2 := range index1 {
 			t[idx1] = s.pool.idToAny(key1)
 			// Loop.
-			for key2, _ := range index2 {
+			for key2 := range index2 {
 				t[idx2] = s.pool.idToAny(key2)
 				if fn(t[0].(string), t[1].(string), t[2], g) {
 					return true
@@ -822,7 +822,7 @@ func indexSomeGivenKey0(index0 indexRoot, key0 uint64, idx0, idx1, idx2 int, g s
 	for key1, index2 := range index1 {
 		t[idx1] = s.pool.idToAny(key1)
 		// Loop.
-		for key2, _ := range index2 {
+		for key2 := range index2 {
 			t[idx2] = s.pool.idToAny(key2)
 			if fn(t[0].(string), t[1].(string), t[2], g) {
 				return true
@@ -847,7 +847,7 @@ func indexSomeGivenKey0And1(index0 indexRoot, key0, key1 uint64, idx0, idx1, idx
 	}
 	t[idx1] = s.pool.idToAny(key1)
 	// Loop.
-	for key2, _ := range index2 {
+	for key2 := range index2 {
 		t[idx2] = s.pool.idToAny(key2)
 		if fn(t[0].(string), t[1].(string), t[2], g) {
 			return true
@@ -902,7 +902,7 @@ func (s *QuadStore) ForGraphs(subject, predicate string, object interface{}, fn 
 		fn(g)
 		return true
 	}
-	for graph, _ := range s.graphs {
+	for graph := range s.graphs {
 		s.SomeWith(subject, predicate, object, graph, callbackAndBreakFn)
 	}
 }
@@ -1111,7 +1111,7 @@ func index2KeysGivenKey0And1(index0 indexRoot, key0, key1 uint64, fn func(key2 u
 	// Lookup.
 	index2, _ := index1[key1]
 	// Loop.
-	for key2, _ := range index2 {
+	for key2 := range index2 {
 		fn(key2)
 	}
 }
@@ -1123,7 +1123,7 @@ func index1KeysGivenKey0(index0 indexRoot, key0 uint64, fn func(key1 uint64)) {
 		return
 	}
 	// Loop.
-	for key1, _ := range index1 {
+	for key1 := range index1 {
 		fn(key1)
 	}
 }
@@ -1141,7 +1141,7 @@ func index0KeysGivenKey1(index0 indexRoot, key1 uint64, fn func(key0 uint64)) {
 
 func index0Keys(index0 indexRoot, fn func(key0 uint64)) {
 	// Loop
-	for key0, _ := range index0 {
+	for key0 := range index0 {
 		fn(key0)
 	}
 }
