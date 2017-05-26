@@ -68,9 +68,8 @@ var _ = Describe("GraphView", func() {
 		})
 
 		Context("from an unknown type", func() {
-			var g *GraphView
 			shouldPanic := func() {
-				g = NewGraph(true)
+				NewGraph(true)
 			}
 
 			It("should panic", func() {

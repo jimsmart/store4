@@ -319,7 +319,7 @@ func (s *QuadStore) Size() uint64 {
 	return s.size
 }
 
-// Empty returns true is the store has no contents.
+// Empty returns true if the store has no contents.
 func (s *QuadStore) Empty() bool {
 	return s.size == 0
 }
@@ -397,7 +397,7 @@ func addToIndex(index0 indexRoot, key0, key1, key2 uint64) bool {
 	return !exists
 }
 
-// Removes quads from the store. Returns the number of quads removed.
+// Remove quads from the store. Returns the number of quads removed.
 //
 // Passing "*" (an asterisk) for any parameter acts as a
 // match-everything wildcard for that term.
@@ -719,75 +719,75 @@ func (s *QuadStore) SomeWith(subject, predicate string, object interface{}, grap
 	// 	flags |= 1
 	// }
 
-	return s.graphs.someMatch(graph, func(graph string, g *indexedGraph) bool {
+	// matchFn := func(graph string, g *indexedGraph) bool {
 
-		// fns := [8]func() bool{
-		// 	// s = z : p = z : o = z
-		// 	func() bool { return indexSomeGivenNoKeys(g.spoIndex, _s, _p, _o, graph, s, fn) },
-		// 	// s = z : p = z : o = nz
-		// 	func() bool { return indexSomeGivenKey0(g.ospIndex, oid, _o, _s, _p, graph, s, fn) },
-		// 	// s = z : p = nz : o = z
-		// 	func() bool { return indexSomeGivenKey0(g.posIndex, pid, _p, _o, _s, graph, s, fn) },
-		// 	// s = z : p = nz : o = nz
-		// 	func() bool { return indexSomeGivenKey0And1(g.posIndex, pid, oid, _p, _o, _s, graph, s, fn) },
-		// 	// s = nz : p = z : o = z
-		// 	func() bool { return indexSomeGivenKey0(g.spoIndex, sid, _s, _p, _o, graph, s, fn) },
-		// 	// s = nz : p = z : o = nz
-		// 	func() bool { return indexSomeGivenKey0And1(g.ospIndex, oid, sid, _o, _s, _p, graph, s, fn) },
-		// 	// s = nz : p = nz : o = z
-		// 	func() bool { return indexSomeGivenKey0And1(g.spoIndex, sid, pid, _s, _p, _o, graph, s, fn) },
-		// 	// s = nz : p = nz : o = nz
-		// 	func() bool { return indexSomeGivenAllKeys(g.spoIndex, sid, pid, oid, _s, _p, _o, graph, s, fn) },
-		// }
-		// return fns[flags]()
+	// 	// Currently, branch prediction beats table lookup - by approx 10%.
 
-		// Currently, branch prediction beats table lookup - by approx 10%.
+	// 	fns := [8]func() bool{
+	// 		// s = z : p = z : o = z
+	// 		func() bool { return indexSomeGivenNoKeys(g.spoIndex, _s, _p, _o, graph, s, fn) },
+	// 		// s = z : p = z : o = nz
+	// 		func() bool { return indexSomeGivenKey0(g.ospIndex, oid, _o, _s, _p, graph, s, fn) },
+	// 		// s = z : p = nz : o = z
+	// 		func() bool { return indexSomeGivenKey0(g.posIndex, pid, _p, _o, _s, graph, s, fn) },
+	// 		// s = z : p = nz : o = nz
+	// 		func() bool { return indexSomeGivenKey0And1(g.posIndex, pid, oid, _p, _o, _s, graph, s, fn) },
+	// 		// s = nz : p = z : o = z
+	// 		func() bool { return indexSomeGivenKey0(g.spoIndex, sid, _s, _p, _o, graph, s, fn) },
+	// 		// s = nz : p = z : o = nz
+	// 		func() bool { return indexSomeGivenKey0And1(g.ospIndex, oid, sid, _o, _s, _p, graph, s, fn) },
+	// 		// s = nz : p = nz : o = z
+	// 		func() bool { return indexSomeGivenKey0And1(g.spoIndex, sid, pid, _s, _p, _o, graph, s, fn) },
+	// 		// s = nz : p = nz : o = nz
+	// 		func() bool { return indexSomeGivenAllKeys(g.spoIndex, sid, pid, oid, _s, _p, _o, graph, s, fn) },
+	// 	}
+	// 	return fns[flags]()
+	// }
 
+	matchFn := func(graph string, g *indexedGraph) bool {
 		// Choose the optimal index, based on which fields are wildcards.
 		if sid != 0 {
 			if pid != 0 {
 				if oid != 0 {
 					// s = nz : p = nz : o = nz
 					return indexSomeGivenAllKeys(g.spoIndex, sid, pid, oid, _s, _p, _o, graph, s, fn)
-				} else {
-					// s = nz : p = nz : o = z
-					return indexSomeGivenKey0And1(g.spoIndex, sid, pid, _s, _p, _o, graph, s, fn)
 				}
+				// s = nz : p = nz : o = z
+				return indexSomeGivenKey0And1(g.spoIndex, sid, pid, _s, _p, _o, graph, s, fn)
 			} else {
 				if oid != 0 {
 					// s = nz : p = z : o = nz
 					return indexSomeGivenKey0And1(g.ospIndex, oid, sid, _o, _s, _p, graph, s, fn)
-				} else {
-					// s = nz : p = z : o = z
-					return indexSomeGivenKey0(g.spoIndex, sid, _s, _p, _o, graph, s, fn)
 				}
+				// s = nz : p = z : o = z
+				return indexSomeGivenKey0(g.spoIndex, sid, _s, _p, _o, graph, s, fn)
 			}
 		} else {
 			if pid != 0 {
 				if oid != 0 {
 					// s = z : p = nz : o = nz
 					return indexSomeGivenKey0And1(g.posIndex, pid, oid, _p, _o, _s, graph, s, fn)
-				} else {
-					// s = z : p = nz : o = z
-					return indexSomeGivenKey0(g.posIndex, pid, _p, _o, _s, graph, s, fn)
 				}
+				// s = z : p = nz : o = z
+				return indexSomeGivenKey0(g.posIndex, pid, _p, _o, _s, graph, s, fn)
 			} else {
 				if oid != 0 {
 					// s = z : p = z : o = nz
 					return indexSomeGivenKey0(g.ospIndex, oid, _o, _s, _p, graph, s, fn)
-				} else {
-					// s = z : p = z : o = z
-					return indexSomeGivenNoKeys(g.spoIndex, _s, _p, _o, graph, s, fn)
 				}
+				// s = z : p = z : o = z
+				return indexSomeGivenNoKeys(g.spoIndex, _s, _p, _o, graph, s, fn)
 			}
 		}
+	}
 
-		// The magic numbers (_slot numbers) above should really be properties of the index itself.
-		//
-		// In an ideal world, the decision as to which index to use should be function
-		// that looks at given params and what indexes are present - then it would be possible
-		// to add or remove indexes.
-	})
+	// The magic numbers above (_x slot numbers) should really be properties of the index itself.
+	//
+	// In an ideal world, the decision as to which index to use should be function
+	// that looks at given params and what indexes are present - then it would be possible
+	// to add or remove indexes.
+
+	return s.graphs.someMatch(graph, matchFn)
 }
 
 func indexSomeGivenNoKeys(index0 indexRoot, idx0, idx1, idx2 int, g string, s *QuadStore, fn QuadTestFn) bool {

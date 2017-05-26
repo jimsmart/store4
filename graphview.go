@@ -114,6 +114,7 @@ func (g *GraphView) Count(subject, predicate string, object interface{}) uint64 
 	return g.QuadStore.Count(subject, predicate, object, g.Graph)
 }
 
+// Empty returns true if the GraphView has no contents.
 func (g *GraphView) Empty() bool {
 	return g.Size() == 0
 }

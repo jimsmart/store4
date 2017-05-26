@@ -92,6 +92,38 @@ type tuple struct {
 //  [][2]string
 //  [2]string
 func (s *QuadStore) Query(pattern interface{}, graph string) []*SubjectView {
+	poList := predicateObjectList(pattern)
+	// Nothing to do?
+	if len(poList) == 0 {
+		return nil
+	}
+
+	haltFn := func(s, p string, o interface{}, g string) bool {
+		return true
+	}
+
+	var out []*SubjectView
+	s.ForSubjects(poList[0].p, poList[0].o, graph, func(subject string) {
+		// Got a match for first q entry,
+		// check if it also satisfies all other q entries.
+		for _, po := range poList[1:] {
+			if !s.SomeWith(subject, po.p, po.o, graph, haltFn) {
+				// No match, try next subject.
+				return
+			}
+		}
+		// Matches all po tuples, add to results list.
+		p := &SubjectView{
+			Subject:   subject,
+			Graph:     graph,
+			QuadStore: s,
+		}
+		out = append(out, p)
+	})
+	return out
+}
+
+func predicateObjectList(pattern interface{}) []tuple {
 	// Convert given pattern into query list.
 	var poList []tuple
 	switch pattern := pattern.(type) {
@@ -124,34 +156,7 @@ func (s *QuadStore) Query(pattern interface{}, graph string) []*SubjectView {
 	case [2]string:
 		poList = append(poList, tuple{pattern[0], pattern[1]})
 	}
-	// Nothing to do?
-	if len(poList) == 0 {
-		return nil
-	}
-
-	haltFn := func(s, p string, o interface{}, g string) bool {
-		return true
-	}
-
-	var out []*SubjectView
-	s.ForSubjects(poList[0].p, poList[0].o, graph, func(subject string) {
-		// Got a match for first q entry,
-		// check if it also satisfies all other q entries.
-		for _, po := range poList[1:] {
-			if !s.SomeWith(subject, po.p, po.o, graph, haltFn) {
-				// No match, try next subject.
-				return
-			}
-		}
-		// Matches all po tuples, add to results list.
-		p := &SubjectView{
-			Subject:   subject,
-			Graph:     graph,
-			QuadStore: s,
-		}
-		out = append(out, p)
-	})
-	return out
+	return poList
 }
 
 // Query returns a list of SubjectViews for subjects in the graph
@@ -200,6 +205,7 @@ func (v *SubjectView) Count(predicate string, object interface{}) uint64 {
 	return v.QuadStore.Count(v.Subject, predicate, object, v.Graph)
 }
 
+// Empty returns true if the SubjectView has no contents.
 func (v *SubjectView) Empty() bool {
 	haltFn := func(s, p string, o interface{}, g string) bool {
 		return true

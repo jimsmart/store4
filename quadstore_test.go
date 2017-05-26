@@ -410,9 +410,8 @@ var _ = Describe("QuadStore", func() {
 		})
 
 		Context("from an unknown type", func() {
-			var s *QuadStore
 			shouldPanic := func() {
-				s = NewQuadStore(true)
+				NewQuadStore(true)
 			}
 			It("should panic", func() {
 				Expect(shouldPanic).To(Panic())
@@ -420,9 +419,8 @@ var _ = Describe("QuadStore", func() {
 		})
 
 		Context("from a slice of unknown type", func() {
-			var s *QuadStore
 			shouldPanic := func() {
-				s = NewQuadStore([]bool{true})
+				NewQuadStore([]bool{true})
 			}
 			It("should panic", func() {
 				Expect(shouldPanic).To(Panic())
@@ -430,9 +428,8 @@ var _ = Describe("QuadStore", func() {
 		})
 
 		Context("from a slice of structs with unknown fields", func() {
-			var s *QuadStore
 			shouldPanic := func() {
-				s = NewQuadStore([]struct{ X string }{{X: "foo"}})
+				NewQuadStore([]struct{ X string }{{X: "foo"}})
 			}
 			It("should panic", func() {
 				Expect(shouldPanic).To(Panic())
