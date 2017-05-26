@@ -754,31 +754,28 @@ func (s *QuadStore) SomeWith(subject, predicate string, object interface{}, grap
 				}
 				// s = nz : p = nz : o = z
 				return indexSomeGivenKey0And1(g.spoIndex, sid, pid, _s, _p, _o, graph, s, fn)
-			} else {
-				if oid != 0 {
-					// s = nz : p = z : o = nz
-					return indexSomeGivenKey0And1(g.ospIndex, oid, sid, _o, _s, _p, graph, s, fn)
-				}
-				// s = nz : p = z : o = z
-				return indexSomeGivenKey0(g.spoIndex, sid, _s, _p, _o, graph, s, fn)
 			}
-		} else {
-			if pid != 0 {
-				if oid != 0 {
-					// s = z : p = nz : o = nz
-					return indexSomeGivenKey0And1(g.posIndex, pid, oid, _p, _o, _s, graph, s, fn)
-				}
-				// s = z : p = nz : o = z
-				return indexSomeGivenKey0(g.posIndex, pid, _p, _o, _s, graph, s, fn)
-			} else {
-				if oid != 0 {
-					// s = z : p = z : o = nz
-					return indexSomeGivenKey0(g.ospIndex, oid, _o, _s, _p, graph, s, fn)
-				}
-				// s = z : p = z : o = z
-				return indexSomeGivenNoKeys(g.spoIndex, _s, _p, _o, graph, s, fn)
+			if oid != 0 {
+				// s = nz : p = z : o = nz
+				return indexSomeGivenKey0And1(g.ospIndex, oid, sid, _o, _s, _p, graph, s, fn)
 			}
+			// s = nz : p = z : o = z
+			return indexSomeGivenKey0(g.spoIndex, sid, _s, _p, _o, graph, s, fn)
 		}
+		if pid != 0 {
+			if oid != 0 {
+				// s = z : p = nz : o = nz
+				return indexSomeGivenKey0And1(g.posIndex, pid, oid, _p, _o, _s, graph, s, fn)
+			}
+			// s = z : p = nz : o = z
+			return indexSomeGivenKey0(g.posIndex, pid, _p, _o, _s, graph, s, fn)
+		}
+		if oid != 0 {
+			// s = z : p = z : o = nz
+			return indexSomeGivenKey0(g.ospIndex, oid, _o, _s, _p, graph, s, fn)
+		}
+		// s = z : p = z : o = z
+		return indexSomeGivenNoKeys(g.spoIndex, _s, _p, _o, graph, s, fn)
 	}
 
 	// The magic numbers above (_x slot numbers) should really be properties of the index itself.
