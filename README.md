@@ -86,4 +86,4 @@ The internals of QuadStore draw heavily from the implementation of N3Store, a co
 
 ## History
 
-- v0.0.1 (2021-04-19) Use Go modules. Enable CI using GitHub Actions.
+- v0.0.1 (2021-04-19) Use Go modules. Enable CI using GitHub Actions. Remove Travis.
