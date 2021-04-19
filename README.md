@@ -1,7 +1,7 @@
 # store4
 
 [![MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE.md)
-[![Build Status](https://img.shields.io/travis/jimsmart/store4/master.svg?style=flat)](https://travis-ci.org/jimsmart/store4)
+[![Build Status](https://github.com/jimsmart/store4/actions/workflows/main.yml/badge.svg)](https://github.com/jimsmart/store4/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/jimsmart/store4/branch/master/graph/badge.svg)](https://codecov.io/gh/jimsmart/store4)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jimsmart/store4)](https://goreportcard.com/report/github.com/jimsmart/store4)
 [![Used By](https://img.shields.io/sourcegraph/rrc/github.com/jimsmart/store4.svg)](https://sourcegraph.com/github.com/jimsmart/store4)
@@ -10,8 +10,9 @@
 store4 is a [Go](https://golang.org) package providing a fast in-memory quad store, with graph and subject views.
 
 ## Installation
+
 ```bash
-$ go get github.com/jimsmart/store4
+go get github.com/jimsmart/store4
 ```
 
 ```go
@@ -72,7 +73,7 @@ To run the tests execute `go test` inside the project folder.
 For a full coverage report, try:
 
 ```bash
-$ go test -coverprofile=coverage.out && go tool cover -html=coverage.out
+go test -coverprofile=coverage.out && go tool cover -html=coverage.out
 ```
 
 ## License
@@ -83,3 +84,6 @@ Package store4 is copyright 2016 by Jim Smart and released under the [MIT Licens
 
 The internals of QuadStore draw heavily from the implementation of N3Store, a component of [N3.js](https://github.com/RubenVerborgh/N3.js). The N3.js library is copyrighted by Ruben Verborgh and released under the MIT License.
 
+## History
+
+- v0.0.1 (2021-04-19) Use Go modules. Enable CI using GitHub Actions.
