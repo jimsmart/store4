@@ -1,7 +1,7 @@
 # store4
 
 [![MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE.md)
-[![Build Status](https://github.com/jimsmart/store4/actions/workflows/main.yml/badge.svg)](https://github.com/jimsmart/store4/actions/workflows/main.yml)
+[![Build Status](https://github.com/jimsmart/store4/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/jimsmart/store4/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/jimsmart/store4/branch/master/graph/badge.svg)](https://codecov.io/gh/jimsmart/store4)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jimsmart/store4)](https://goreportcard.com/report/github.com/jimsmart/store4)
 [![Used By](https://img.shields.io/sourcegraph/rrc/github.com/jimsmart/store4.svg)](https://sourcegraph.com/github.com/jimsmart/store4)
